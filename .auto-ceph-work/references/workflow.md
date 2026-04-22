@@ -5,7 +5,7 @@
 - `.auto-ceph-work/references/runtime-contract.md`
 - `.auto-ceph-work/references/jira-sync.md`
 - `.auto-ceph-work/references/stage-result-format.md`
-- `doc/<티켓번호>/01_TICKET.md` 부터 `doc/<티켓번호>/07_LOOP.md` 까지의 stage 산출물
+- `doc/<티켓번호>/01_TICKET.md` 부터 `doc/<티켓번호>/08_LOOP.md` 까지의 stage 산출물
 
 ## Phase Mapping
 
@@ -16,6 +16,7 @@
 | 계획 | `.codex/commands/aceph/plan-ticket.md` | `workflows/plan-ticket.md` | `.codex/agents/aceph-ticket-plan.toml` |
 | 수행 | `.codex/commands/aceph/execute-ticket.md` | `workflows/execute-ticket.md` | `.codex/agents/aceph-ticket-execute.toml` |
 | 검증 | `.codex/commands/aceph/verify-ticket.md` | `workflows/verify-ticket.md` | `.codex/agents/aceph-ticket-verify.toml` |
+| 코드 리뷰 | `.codex/commands/aceph/code-review-ticket.md` | `workflows/code-review-ticket.md` | `.codex/agents/aceph-ticket-code-review.toml` |
 | 리뷰 요청 | `.codex/commands/aceph/review-request-ticket.md` | `workflows/review-request-ticket.md` | `.codex/agents/aceph-ticket-review-request.toml` |
 
 ## Entry Points
@@ -33,15 +34,17 @@
 - `03_PLAN.md`가 미완성이면 `계획`
 - `04_EXECUTION.md`가 미완성이면 `수행`
 - `05_UAT.md`가 미완료면 `검증`
-- `06_SUMMARY.md`가 미완료면 `리뷰 요청`
-- `07_LOOP.md`는 반복 제어 이력을 담고 detector의 현재 stage 판정과는 분리한다
-- `07_LOOP.md`의 `retry_pending`은 다음 fallback stage를 같은 실행 안에서 다시 dispatch하기 위한 중간 상태다
+- `06_REVIEW.md`가 미완료면 `코드 리뷰`
+- `07_SUMMARY.md`가 미완료면 `리뷰 요청`
+- `08_LOOP.md`는 반복 제어 이력을 담고 detector의 현재 stage 판정과는 분리한다
+- `08_LOOP.md`의 `retry_pending`은 다음 fallback stage를 같은 실행 안에서 다시 dispatch하기 위한 중간 상태다
 
 ## Ralph Loop Policy
 
 - stage 결과가 `blocked`, `failed`, `needs_retry`여도 `terminal_reason`이 입력/설정 오류면 재진입하지 않는다
-- 비재시도 종료 사유는 `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `missing_verify_env_file`, `missing_verify_env_values`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`다
+- 비재시도 종료 사유는 `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`다
 - 그 외 stage 결과는 오케스트레이터가 같은 실행 안에서 즉시 `fallback_stage`로 재진입한다
+- `코드 리뷰` 단계에서 `changes_requested`가 나오면 retryable failure로 보고 `수행`으로 되돌린다
 - 같은 loop 안의 stage 전진은 iteration을 올리지 않는다
 - retry 시에는 다음 iteration을 연 뒤 그 iteration의 `fallback_stage`를 같은 실행 안에서 바로 소비한다
 - 자동 반복 상한은 전체 loop attempt 10회다
@@ -67,6 +70,10 @@
   - 검증 단계에서 Playwright 우선
 - API 변경
   - 검증 단계에서 테스트 우선
-  - 계획 단계에서 `03_PLAN.md`의 `검증용 API 호출 스펙`을 완성
-  - 수행 단계에서 필요하면 `04_EXECUTION.md`의 `검증용 API 호출 실행값`으로 보정
-  - 검증 단계에서 테스트 후 `doc/VERIFY_ENV.md`와 요청 스펙을 사용해 실제 HTTP 응답까지 확인
+  - 계획 단계에서 테스트 기준과 완료 기준을 정리
+  - 수행 단계에서 필요하면 `04_EXECUTION.md`에 실제 검증 보정사항을 기록
+  - 검증 단계에서 테스트 결과와 산출물을 기준으로 최종 판단
+- 코드 품질 확인
+  - 코드 리뷰 단계에서 현재 브랜치의 변경 코드와 diff를 직접 검토한다
+  - 핵심 판단 기준은 품질, 구조, 회귀 위험, 경계 조건, 테스트 충분성이다
+  - 테스트 재실행 자체는 코드 리뷰 단계의 목적이 아니다

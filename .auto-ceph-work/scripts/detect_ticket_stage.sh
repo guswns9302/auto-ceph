@@ -54,8 +54,7 @@ if ! has_nonempty_file "$TICKET_DIR/01_TICKET.md" || ! has_nonempty_file "$TICKE
 fi
 
 if ! has_kv_value "$TICKET_DIR/01_TICKET.md" "repo" \
-  || ! has_kv_value "$TICKET_DIR/01_TICKET.md" "remote" \
-  || ! has_kv_value "$TICKET_DIR/01_TICKET.md" "endpoint"; then
+  || ! has_kv_value "$TICKET_DIR/01_TICKET.md" "remote"; then
   echo "문제 확인"
   exit 0
 fi
@@ -69,8 +68,6 @@ fi
 if ! has_nonempty_file "$TICKET_DIR/03_PLAN.md" \
   || ! grep -q "기준 브랜치: dev" "$TICKET_DIR/03_PLAN.md" \
   || ! has_prefixed_value "$TICKET_DIR/03_PLAN.md" "목표" \
-  || ! has_prefixed_value "$TICKET_DIR/03_PLAN.md" "method" \
-  || ! has_prefixed_value "$TICKET_DIR/03_PLAN.md" "endpoint" \
   || ! has_prefixed_value "$TICKET_DIR/03_PLAN.md" "성공 기준"; then
   echo "계획"
   exit 0
@@ -88,8 +85,14 @@ if ! has_nonempty_file "$TICKET_DIR/05_UAT.md" \
   exit 0
 fi
 
-if ! has_nonempty_file "$TICKET_DIR/06_SUMMARY.md" \
-  || ! has_prefixed_value "$TICKET_DIR/06_SUMMARY.md" "주요 변경 1"; then
+if ! has_nonempty_file "$TICKET_DIR/06_REVIEW.md" \
+  || ! has_kv_value "$TICKET_DIR/06_REVIEW.md" "결과"; then
+  echo "코드 리뷰"
+  exit 0
+fi
+
+if ! has_nonempty_file "$TICKET_DIR/07_SUMMARY.md" \
+  || ! has_prefixed_value "$TICKET_DIR/07_SUMMARY.md" "주요 변경 1"; then
   echo "리뷰 요청"
   exit 0
 fi

@@ -1,6 +1,6 @@
 ---
 name: aceph:review-request-ticket
-description: Summarize a validated ticket in 06_SUMMARY.md.
+description: Summarize a reviewed ticket in 07_SUMMARY.md.
 argument-hint: "<TICKET-ID>"
 agent: aceph-ticket-review-request
 allowed-tools:
@@ -12,7 +12,7 @@ allowed-tools:
   - Glob
 ---
 <objective>
-Prepare the final review-request output for a validated ticket.
+Prepare the final review-request output for a code-reviewed ticket.
 </objective>
 
 <execution_context>
@@ -25,7 +25,7 @@ Prepare the final review-request output for a validated ticket.
 <context>
 Ticket ID: required in `$ARGUMENTS`
 
-- Required artifact: `doc/<TICKET-ID>/06_SUMMARY.md`
+- Required artifact: `doc/<TICKET-ID>/07_SUMMARY.md`
 - Jira target note: `리뷰 요청`
 - Jira target state: unchanged
 - Stage must first update the Jira issue description `### 작업 노트` section with `#### 리뷰 요청` plus `- 시작`, then update artifacts, then replace that same stage block with the Jira stage summary bullet items.

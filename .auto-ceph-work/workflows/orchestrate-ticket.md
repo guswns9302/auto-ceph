@@ -1,7 +1,7 @@
 # Orchestrate Ticket Workflow
 
 1. Detect current stage from document state.
-2. Resolve loop state and current loop attempt from `07_LOOP.md`.
+2. Resolve loop state and current loop attempt from `08_LOOP.md`.
 3. Resolve the canonical workflow and agent spec for the detected stage.
 4. Build a runtime prompt from the canonical workflow, agent, ticket files, and loop context.
 5. Spawn a runtime carrier agent.

@@ -10,7 +10,6 @@
 
 - repo:
 - remote:
-- endpoint:
 
 ## 원본 문제
 

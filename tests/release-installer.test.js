@@ -33,7 +33,6 @@ function makeSourceTree(rootDir) {
     docs_root: "doc",
     ticket_root_pattern: "doc/<TICKET-ID>",
   }, null, 2));
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "VERIFY_ENV.md"), "# verify env\n");
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
@@ -45,6 +44,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".codex", "agents", "aceph-orchestrator.toml"), "name = \"aceph-orchestrator\"\n");
   write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nagent: aceph-orchestrator\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
+  write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
 }
 
 test("ensureCodexHooksFeature adds or upgrades the features block", () => {
@@ -88,10 +88,10 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "commands", "aceph", "next.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, INSTALL_META_FILE)));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "project.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
-  assert.ok(fs.existsSync(path.join(projectRoot, "doc", "VERIFY_ENV.md")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
@@ -120,7 +120,6 @@ test("uninstallProject removes managed assets and local config block only", () =
   });
 
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work")), false);
-  assert.equal(fs.existsSync(path.join(projectRoot, "doc", "VERIFY_ENV.md")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "agents")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "commands")), false);
@@ -131,24 +130,6 @@ test("uninstallProject removes managed assets and local config block only", () =
   assert.match(config, /model = "gpt-5.4"/);
   assert.doesNotMatch(config, /aceph-prompt-guard\.js/);
   assert.doesNotMatch(config, new RegExp(escapeForRegExp(MANAGED_BLOCK_START)));
-});
-
-test("installProject preserves an existing verify env file", () => {
-  const sourceRoot = makeTempDir("aceph-source-");
-  const projectRoot = makeTempDir("aceph-project-");
-  makeSourceTree(sourceRoot);
-  write(path.join(projectRoot, "doc", "VERIFY_ENV.md"), "custom verify env\n");
-
-  installProject({
-    sourceRoot,
-    projectRoot,
-    version: "v1.2.3",
-  });
-
-  assert.equal(
-    fs.readFileSync(path.join(projectRoot, "doc", "VERIFY_ENV.md"), "utf8"),
-    "custom verify env\n"
-  );
 });
 
 function escapeForRegExp(value) {

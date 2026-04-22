@@ -39,6 +39,7 @@ Ticket ID: optional in `$ARGUMENTS`
 - A stage is not complete unless it wrote both the Jira current-stage note and the Jira stage summary note.
 - A stage that requires Jira status transition is not complete unless the expected Jira state change also succeeded.
 - The automatic loop retry limit is 10 loop attempts.
+- Code review is a separate stage after verification. Treat code-review failures as retryable quality findings that must re-enter through `수행`.
 </context>
 
 <process>
@@ -48,7 +49,7 @@ If the host runtime does not bind the target stage command to its declared custo
 Reject any stage result that is missing Jira start-note or Jira summary-note evidence.
 Reject any stage result that is missing the required Jira status transition evidence for that stage.
 Reject any stage result that omits `iteration`, `loop_decision`, `detected_stage_after_run`, or `terminal_reason`.
-Do not auto-retry non-retryable terminal reasons: `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `missing_verify_env_file`, `missing_verify_env_values`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`.
+Do not auto-retry non-retryable terminal reasons: `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`.
 When the stage result is retryable, do not stop and wait for another user invocation. Record the retry state and dispatch `fallback_stage` again in this same run until the ticket reaches a terminal state or the loop limit is exhausted.
 When a ticket loop reaches a terminal state, perform ticket-level git post-processing before exiting:
 - If `git status --short` is empty, skip commit/push.

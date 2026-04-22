@@ -12,11 +12,10 @@ Auto-Ceph는 Jira description 전체 템플릿 일치를 요구하지 않는다.
 
 ## Minimum Required Inputs
 
-Jira description 어디에 있든 아래 3개가 추출 가능해야 한다.
+Jira description 어디에 있든 아래 2개가 추출 가능해야 한다.
 
 - `repo: [repository name]`
 - `remote: [git remote name]`
-- `endpoint: [target endpoint]`
 
 권장 예시는 아래와 같다.
 
@@ -26,7 +25,6 @@ Jira description 어디에 있든 아래 3개가 추출 가능해야 한다.
 ### 프로젝트
 - repo: [repository name]
 - remote: [git remote name]
-- endpoint: [target endpoint]
 
 ### 문제점
 
@@ -35,7 +33,7 @@ Jira description 어디에 있든 아래 3개가 추출 가능해야 한다.
 ### 작업 노트
 
 #### 문제 확인
-- TICKET.md/CONTEXT.md 작성 완료. repo=example, remote=origin, endpoint=/api/example
+- TICKET.md/CONTEXT.md 작성 완료. repo=example, remote=origin
 
 #### 계획
 - PLAN.md 갱신 완료. 구현 task와 검증 계획 정리. blocker 없음
@@ -50,9 +48,6 @@ Jira description 어디에 있든 아래 3개가 추출 가능해야 한다.
 - `remote`
   - terminal git 후처리에서 사용할 git remote 이름
   - 현재 브랜치 upstream이 없을 때 fallback push 대상이 된다
-- `endpoint`
-  - API 또는 UI 진입점
-  - API 티켓이면 테스트와 검증의 핵심 입력이다
 - 실제 작업 브랜치
   - Jira에서 받지 않는다
   - 항상 `feature/<TICKET-ID>` 형식으로 intake 단계에서 준비한다
@@ -66,7 +61,7 @@ Jira description 어디에 있든 아래 3개가 추출 가능해야 한다.
 
 - 제목에 `[ACW]`가 없다
   - intake 대상 아님
-- 제목에 `[ACW]`가 있지만 `repo`, `remote`, `endpoint` 중 하나라도 없다
+- 제목에 `[ACW]`가 있지만 `repo`, `remote` 중 하나라도 없다
   - intake `blocked`
   - 종료 사유는 `missing_required_inputs`로 기록하고 누락 필드명을 요약에 포함한다
 - 제목에 `[ACW]`가 있고 `repo`도 있지만 현재 프로젝트 루트 디렉터리명과 다르다
@@ -81,4 +76,5 @@ Jira description 어디에 있든 아래 3개가 추출 가능해야 한다.
 - 구현 계획: `doc/<티켓번호>/03_PLAN.md`
 - 실행 로그: `doc/<티켓번호>/04_EXECUTION.md`
 - 검증 결과: `doc/<티켓번호>/05_UAT.md`
-- 리뷰 요청 요약: `doc/<티켓번호>/06_SUMMARY.md`
+- 코드 리뷰 결과: `doc/<티켓번호>/06_REVIEW.md`
+- 리뷰 요청 요약: `doc/<티켓번호>/07_SUMMARY.md`

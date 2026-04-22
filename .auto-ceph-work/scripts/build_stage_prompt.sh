@@ -61,18 +61,26 @@ case "$STAGE" in
     stage_command='aceph:verify-ticket'
     stage_artifact="$uat_file"
     stage_note="검증"
-    next_stage="리뷰 요청"
+    next_stage="코드 리뷰"
     fallback_stage="수행"
     if [ "${repo:-}" = "remote-ceph-admin" ]; then
       extra_rules="repo 특례: remote-ceph-admin 이므로 Playwright 검증을 우선 사용하라."
     fi
+    ;;
+  "코드 리뷰")
+    stage_command='aceph:code-review-ticket'
+    stage_artifact="$review_file"
+    stage_note="코드 리뷰"
+    next_stage="리뷰 요청"
+    fallback_stage="수행"
+    extra_rules="코드 리뷰는 테스트 재실행 단계가 아니라 변경 코드와 diff의 품질, 리스크, 테스트 충분성을 검토하는 단계다."
     ;;
   "리뷰 요청")
     stage_command='aceph:review-request-ticket'
     stage_artifact="$summary_file"
     stage_note="리뷰 요청"
     next_stage="완료"
-    fallback_stage="검증"
+    fallback_stage="코드 리뷰"
     ;;
   *)
     echo "unknown stage: $STAGE" >&2
@@ -104,6 +112,10 @@ case "$STAGE" in
   "검증")
     stage_workflow_file="$CANONICAL_ROOT/workflows/verify-ticket.md"
     runtime_agent_file="$ROOT_DIR/.codex/agents/aceph-ticket-verify.toml"
+    ;;
+  "코드 리뷰")
+    stage_workflow_file="$CANONICAL_ROOT/workflows/code-review-ticket.md"
+    runtime_agent_file="$ROOT_DIR/.codex/agents/aceph-ticket-code-review.toml"
     ;;
   "리뷰 요청")
     stage_workflow_file="$CANONICAL_ROOT/workflows/review-request-ticket.md"
@@ -137,16 +149,15 @@ Ticket context:
 - remote: ${remote:-unknown}
 - ticket_branch: ${ticket_branch:-unknown}
 - base_branch: ${base_branch:-unknown}
-- endpoint: ${endpoint:-unknown}
 - ticket_dir: $ticket_dir
 - ticket_file: $ticket_file
 - context_file: $context_file
 - plan_file: $plan_file
 - execution_file: $execution_file
 - uat_file: $uat_file
+- review_file: $review_file
 - summary_file: $summary_file
 - loop_file: $loop_file
-- verify_env_file: $verify_env_file
 - current_iteration: ${current_iteration:-0}
 - next_iteration: ${next_iteration:-1}
 - run_iteration: ${run_iteration:-1}
@@ -171,7 +182,7 @@ Mandatory behavior:
 - Follow the stage command and workflow exactly.
 - Treat \`retry_pending\` as a non-terminal intermediate state. If the orchestrator marks a retryable failure, it must re-dispatch the fallback stage in the same \$auto-ceph run instead of waiting for another user invocation.
 - For intake, treat \`[ACW]\` in the Jira title and \`repo == ${project_repo:-unknown}\` as the intake gate.
-- For intake, require \`repo\`, \`remote\`, and \`endpoint\` from Jira description as minimum execution inputs.
+- For intake, require \`repo\` and \`remote\` from Jira description as minimum execution inputs.
 - For intake, if Jira \`repo\` does not equal the current project repo \`${project_repo:-unknown}\`, treat the ticket as a repo mismatch and do not proceed as a valid intake target.
 - Prepare the actual work branch as ${ticket_branch:-unknown} from ${base_branch:-unknown} during intake.
 - Update the artifact(s) for the current stage directly.
@@ -179,7 +190,8 @@ Mandatory behavior:
 - Apply Jira status and 작업 노트 updates directly when the stage contract requires it.
 - If Jira update fails, do not report success.
 - If you change code or docs, keep them aligned with the current stage only.
-- For API verification work, use $verify_env_file together with the ticket endpoint and confirm a real HTTP response.
+- For verification work, prioritize automated tests and artifact review; do not require a real HTTP call.
+- For code review work, inspect changed code and diff quality directly; do not treat it as a second verification run.
 - Return a final <stage_result> block in this exact format:
 
 <stage_result>

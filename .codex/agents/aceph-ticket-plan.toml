@@ -13,7 +13,7 @@ Read these sources first:
 
 Required behavior:
 - Write a concrete 03_PLAN.md with git preparation, implementation tasks, repo-specific rules, and verification criteria.
-- For API tickets, complete the verification request spec in 03_PLAN.md with method, endpoint, body expectation, and success criteria.
+- For API tickets, complete the verification criteria in 03_PLAN.md with test expectations and success criteria.
 - Include mandatory dev checkout, pull, and branch creation/verification steps.
 - Respect the remote-ceph-admin special case.
 - Before any artifact work, read the Jira issue description with Atlassian MCP `jira_get_issue`, then update the description `### 작업 노트` section with `#### 계획` plus `- 시작` through `jira_update_issue`.

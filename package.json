@@ -10,7 +10,7 @@
     ".auto-ceph-work",
     ".codex/agents",
     ".codex/commands",
-    ".codex/skills/auto-ceph",
+    ".codex/skills",
     "bin",
     "scripts/release-installer.js"
   ],

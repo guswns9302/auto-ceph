@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawn, spawnSync } = require("node:child_process");
+const { spawnSync } = require("node:child_process");
 
 const packageVersion = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8")
@@ -27,8 +27,7 @@ function makeSourceTree(rootDir) {
     docs_root: "doc",
     ticket_root_pattern: "doc/<TICKET-ID>",
   }, null, 2));
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "VERIFY_ENV.md"), "# verify env\n");
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "07_LOOP.md"), "# [TICKET-ID]\n");
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "08_LOOP.md"), "# [TICKET-ID]\n");
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
@@ -40,6 +39,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".codex", "agents", "aceph-orchestrator.toml"), "name = \"aceph-orchestrator\"\n");
   write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nagent: aceph-orchestrator\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
+  write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
 }
 
 function runCli(args) {
@@ -79,8 +79,8 @@ test("cli install routes to the installer and uses package version by default", 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "commands", "aceph", "next.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
-  assert.ok(fs.existsSync(path.join(projectRoot, "doc", "VERIFY_ENV.md")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
@@ -109,12 +109,12 @@ test("create_ticket_docs script succeeds even when new-ticket-doc.sh is not exec
   }, null, 2));
   write(path.join(rootDir, ".auto-ceph-work", "templates", "01_TICKET.md"), "# [TICKET-ID]\n");
   write(path.join(rootDir, ".auto-ceph-work", "templates", "02_CONTEXT.md"), "# [TICKET-ID]\n");
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# [TICKET-ID]\n- method:\n- endpoint:\n- 성공 기준:\n");
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "04_EXECUTION.md"), "# [TICKET-ID]\n- method:\n- endpoint:\n");
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# [TICKET-ID]\n- 목표:\n- 성공 기준:\n기준 브랜치: dev\n");
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "04_EXECUTION.md"), "# [TICKET-ID]\n- 수행 내용:\n");
   write(path.join(rootDir, ".auto-ceph-work", "templates", "05_UAT.md"), "# [TICKET-ID]\n");
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "06_SUMMARY.md"), "# [TICKET-ID]\n");
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "07_LOOP.md"), "# [TICKET-ID]\n");
-  write(path.join(rootDir, ".auto-ceph-work", "templates", "VERIFY_ENV.md"), "# verify env\n");
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "06_REVIEW.md"), "# [TICKET-ID]\n");
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "07_SUMMARY.md"), "# [TICKET-ID]\n");
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "08_LOOP.md"), "# [TICKET-ID]\n");
   write(
     path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"),
     fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "utf8")
@@ -132,19 +132,18 @@ test("create_ticket_docs script succeeds even when new-ticket-doc.sh is not exec
   );
 
   assert.equal(result.status, 0, result.stderr);
-  for (const fileName of ["01_TICKET.md", "02_CONTEXT.md", "03_PLAN.md", "04_EXECUTION.md", "05_UAT.md", "06_SUMMARY.md", "07_LOOP.md"]) {
+  for (const fileName of ["01_TICKET.md", "02_CONTEXT.md", "03_PLAN.md", "04_EXECUTION.md", "05_UAT.md", "06_REVIEW.md", "07_SUMMARY.md", "08_LOOP.md"]) {
     const created = path.join(rootDir, "doc", "CDS-2135", fileName);
     assert.ok(fs.existsSync(created), created);
     assert.match(fs.readFileSync(created, "utf8"), /CDS-2135/);
   }
-  assert.ok(fs.existsSync(path.join(rootDir, "doc", "VERIFY_ENV.md")));
 });
 
 test("resolve_ticket_context extracts remote from 01_TICKET.md", () => {
   const rootDir = makeTempDir("ceph-service-api-");
   write(
     path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
-    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n- endpoint: /health\n"
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
   write(
     path.join(rootDir, ".auto-ceph-work", "scripts", "resolve_ticket_context.sh"),
@@ -161,7 +160,6 @@ test("resolve_ticket_context extracts remote from 01_TICKET.md", () => {
   assert.match(result.stdout, /^repo='ceph-service-api'$/m);
   assert.match(result.stdout, /^project_repo='ceph-service-api-[^']+'$/m);
   assert.match(result.stdout, /^remote='origin'$/m);
-  assert.match(result.stdout, /^endpoint='\/health'$/m);
   assert.match(result.stdout, /^ticket_branch='feature\/CDS-2135'$/m);
   assert.match(result.stdout, /^base_branch='dev'$/m);
 });
@@ -223,11 +221,11 @@ test("detect_ticket_stage stays at intake when remote is missing", () => {
   assert.equal(result.stdout.trim(), "문제 확인");
 });
 
-test("detect_ticket_stage advances past intake when repo remote and endpoint exist", () => {
+test("detect_ticket_stage advances past intake when repo and remote exist", () => {
   const rootDir = makeTempDir("aceph-stage-advance-root-");
   write(
     path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
-    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n- endpoint: /health\n"
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
   write(
     path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"),
@@ -248,6 +246,63 @@ test("detect_ticket_stage advances past intake when repo remote and endpoint exi
   assert.equal(result.stdout.trim(), "계획");
 });
 
+test("detect_ticket_stage enters code review after validation when review doc is missing", () => {
+  const rootDir = makeTempDir("aceph-stage-code-review-root-");
+  write(
+    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
+  );
+  write(
+    path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"),
+    "# CONTEXT\n\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n"
+  );
+  write(path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"), "utf8")
+  );
+
+  const result = runScript(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    ["CDS-2135"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), "코드 리뷰");
+});
+
+test("detect_ticket_stage enters review request after code review passes", () => {
+  const rootDir = makeTempDir("aceph-stage-review-request-root-");
+  write(
+    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
+  );
+  write(
+    path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"),
+    "# CONTEXT\n\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n"
+  );
+  write(path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"), "utf8")
+  );
+
+  const result = runScript(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    ["CDS-2135"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), "리뷰 요청");
+});
+
 test("cli install does not install a Stop hook or run-state helper", () => {
   const sourceRoot = makeTempDir("aceph-cli-source-no-stop-");
   makeSourceTree(sourceRoot);
@@ -262,116 +317,6 @@ test("cli install does not install a Stop hook or run-state helper", () => {
   const config = fs.readFileSync(path.join(projectRoot, ".codex", "config.toml"), "utf8");
   assert.doesNotMatch(config, /event = "Stop"/);
   assert.doesNotMatch(config, /aceph-stop-continue\.js/);
-});
-
-test("verify_api_request script calls the configured endpoint with required headers", async (t) => {
-  const rootDir = makeTempDir("aceph-verify-root-");
-  write(path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"), "# TICKET\n\n- endpoint: /health\n");
-  write(
-    path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"),
-    "# PLAN\n\n## 검증용 API 호출 스펙\n\n- method: POST\n- endpoint: /health\n- body: {\"name\":\"demo\"}\n- 성공 기준: 200 OK\n"
-  );
-  write(
-    path.join(rootDir, "doc", "CDS-2135", "04_EXECUTION.md"),
-    "# EXECUTION\n\n## 검증용 API 호출 실행값\n\n- method:\n- endpoint:\n- body:\n- 비고:\n"
-  );
-  write(
-    path.join(rootDir, "doc", "VERIFY_ENV.md"),
-    "# env\n\n- base_url: http://127.0.0.1:0\n- X-Provider-Id: provider-1\n- X-User-Id: user-1\n"
-  );
-  write(
-    path.join(rootDir, ".auto-ceph-work", "scripts", "resolve_ticket_context.sh"),
-    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "resolve_ticket_context.sh"), "utf8")
-  );
-  write(
-    path.join(rootDir, ".auto-ceph-work", "scripts", "verify_api_request.sh"),
-    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "verify_api_request.sh"), "utf8")
-  );
-
-  const requestLogPath = path.join(rootDir, "request-log.json");
-  const serverScript = `
-    const fs = require("fs");
-    const http = require("node:http");
-    const logPath = process.argv[1];
-    const server = http.createServer((req, res) => {
-      fs.writeFileSync(logPath, JSON.stringify({
-        url: req.url,
-        method: req.method,
-        provider: req.headers["x-provider-id"],
-        user: req.headers["x-user-id"],
-        body: (() => {
-          let data = "";
-          req.on("data", (chunk) => { data += chunk; });
-          req.on("end", () => {
-            fs.writeFileSync(logPath, JSON.stringify({
-              url: req.url,
-              method: req.method,
-              provider: req.headers["x-provider-id"],
-              user: req.headers["x-user-id"],
-              body: data,
-            }));
-            res.writeHead(200, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: true }));
-          });
-          return undefined;
-        })(),
-      }));
-    });
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      process.stdout.write(String(address.port));
-    });
-  `;
-  const serverProcess = spawn(process.execPath, ["-e", serverScript, requestLogPath], {
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  t.after(() => {
-    if (!serverProcess.killed) {
-      serverProcess.kill("SIGTERM");
-    }
-  });
-
-  const addressPort = await new Promise((resolve, reject) => {
-    let stdout = "";
-    serverProcess.stdout.setEncoding("utf8");
-    serverProcess.stdout.on("data", (chunk) => {
-      stdout += chunk;
-      if (/^\d+$/.test(stdout.trim())) {
-        resolve(Number(stdout.trim()));
-      }
-    });
-    serverProcess.on("error", reject);
-    serverProcess.stderr.on("data", (chunk) => {
-      reject(new Error(String(chunk)));
-    });
-    serverProcess.on("exit", (code) => {
-      if (!stdout.trim()) {
-        reject(new Error(`server exited before reporting port: ${code}`));
-      }
-    });
-  });
-
-  const verifyEnvPath = path.join(rootDir, "doc", "VERIFY_ENV.md");
-  const verifyEnvBody = fs.readFileSync(verifyEnvPath, "utf8").replace("http://127.0.0.1:0", `http://127.0.0.1:${addressPort}`);
-  fs.writeFileSync(verifyEnvPath, verifyEnvBody);
-
-  const result = runScript(
-    path.join(rootDir, ".auto-ceph-work", "scripts", "verify_api_request.sh"),
-    ["CDS-2135"],
-    rootDir
-  );
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /result=passed/);
-  assert.match(result.stdout, /request_method=POST/);
-  assert.match(result.stdout, new RegExp(`request_url=http://127\\.0\\.0\\.1:${addressPort}/health`));
-  assert.match(result.stdout, /http_status=200/);
-  const requestLog = JSON.parse(fs.readFileSync(requestLogPath, "utf8"));
-  assert.equal(requestLog.url, "/health");
-  assert.equal(requestLog.method, "POST");
-  assert.equal(requestLog.provider, "provider-1");
-  assert.equal(requestLog.user, "user-1");
-  assert.equal(requestLog.body, "{\"name\":\"demo\"}");
 });
 
 test("format_jira_note script renders a start block for description work notes", () => {
@@ -503,7 +448,7 @@ test("update_jira_work_note_section creates a work-note section when missing", (
 test("resolve_loop_state script reports iteration metadata and retry limit", () => {
   const rootDir = makeTempDir("aceph-loop-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "07_LOOP.md"),
+    path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
     `# CDS-2135 Loop History
 
 ## 메타 정보
@@ -582,7 +527,7 @@ test("resolve_loop_state script reports iteration metadata and retry limit", () 
 test("resolve_loop_state script blocks automatic retry after the limit", () => {
   const rootDir = makeTempDir("aceph-loop-limit-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "07_LOOP.md"),
+    path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
     `# CDS-2135 Loop History
 
 ## 현재 루프 상태
@@ -629,7 +574,7 @@ test("resolve_loop_state script blocks automatic retry after the limit", () => {
 test("resolve_loop_state script blocks automatic retry for non-retryable terminal reasons", () => {
   const rootDir = makeTempDir("aceph-loop-non-retryable-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "07_LOOP.md"),
+    path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
     `# CDS-2135 Loop History
 
 ## 현재 루프 상태
@@ -674,7 +619,7 @@ test("resolve_loop_state script blocks automatic retry for branch and post-ticke
   for (const reason of reasons) {
     const rootDir = makeTempDir(`aceph-loop-${reason}-root-`);
     write(
-      path.join(rootDir, "doc", "CDS-2135", "07_LOOP.md"),
+      path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
       `# CDS-2135 Loop History
 
 ## 현재 루프 상태
@@ -718,15 +663,15 @@ test("build_stage_prompt includes current project repo for intake matching", () 
   const rootDir = makeTempDir("ceph-service-api-");
   write(
     path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
-    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n- endpoint: /health\n"
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
   write(path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"), "# CONTEXT\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- method: GET\n- endpoint: /health\n- 성공 기준: 200\n기준 브랜치: dev\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: 200\n기준 브랜치: dev\n");
   write(path.join(rootDir, "doc", "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
   write(path.join(rootDir, "doc", "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: pending\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "06_SUMMARY.md"), "# SUMMARY\n- 주요 변경 1: test\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "07_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 0\n- 최대 iteration: 10\n- 현재 loop 상태: idle\n- 현재 stage: 문제 확인\n- 마지막 결과 상태:\n- 마지막 loop 결정:\n- 마지막 fallback 단계:\n- 마지막 종료 사유:\n\n## Iteration History\n");
-  write(path.join(rootDir, "doc", "VERIFY_ENV.md"), "# env\n- base_url: http://localhost\n- X-Provider-Id: p\n- X-User-Id: u\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "07_SUMMARY.md"), "# SUMMARY\n- 주요 변경 1: test\n");
+  write(path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 0\n- 최대 iteration: 10\n- 현재 loop 상태: idle\n- 현재 stage: 문제 확인\n- 마지막 결과 상태:\n- 마지막 loop 결정:\n- 마지막 fallback 단계:\n- 마지막 종료 사유:\n\n## Iteration History\n");
   for (const scriptName of ["resolve_ticket_context.sh", "resolve_loop_state.sh", "build_stage_prompt.sh"]) {
     write(
       path.join(rootDir, ".auto-ceph-work", "scripts", scriptName),

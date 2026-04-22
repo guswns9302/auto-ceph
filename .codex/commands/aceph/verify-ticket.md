@@ -13,7 +13,7 @@ allowed-tools:
   - Task
 ---
 <objective>
-Verify the implemented ticket work and capture a clear release decision in `05_UAT.md`.
+Verify the implemented ticket work and capture a clear validation result in `05_UAT.md`.
 </objective>
 
 <execution_context>
@@ -27,7 +27,6 @@ Verify the implemented ticket work and capture a clear release decision in `05_U
 Ticket ID: required in `$ARGUMENTS`
 
 - Required artifact: `doc/<TICKET-ID>/05_UAT.md`
-- Shared verify config: `doc/VERIFY_ENV.md`
 - Jira target note: `검증`
 - Jira target state: `REVIEW`
 - Jira state transition timing: 검증 시작 시
@@ -37,7 +36,8 @@ Ticket ID: required in `$ARGUMENTS`
 
 <process>
 Execute the verification workflow from @.auto-ceph-work/workflows/verify-ticket.md.
-If the ticket is API-oriented, run tests first and then call the real endpoint using `doc/VERIFY_ENV.md` plus the request spec from `03_PLAN.md` and any overrides in `04_EXECUTION.md`.
+If the ticket is API-oriented, run tests first and summarize the verification result from automated checks and updated artifacts.
+This stage validates behavior and release readiness only; code quality review belongs to the separate `코드 리뷰` stage.
 The stage is complete only when the Jira start note, the required `REVIEW` transition, artifact updates, and Jira summary note have all succeeded.
 Return a final `<stage_result>` block.
 </process>

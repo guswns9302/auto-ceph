@@ -95,13 +95,18 @@ function buildAdvisory(target, ticketId, stage, reason) {
 
 function classifyReason(project, target, ticketId, stage) {
   const docsRoot = `${project.config.docs_root}/`;
-  const isSummaryWrite = target.relative.endsWith("/06_SUMMARY.md");
+  const isReviewWrite = target.relative.endsWith("/06_REVIEW.md");
+  const isSummaryWrite = target.relative.endsWith("/07_SUMMARY.md");
   const isCodeLike =
     !target.relative.startsWith(docsRoot) &&
     !target.relative.startsWith(".codex/");
 
-  if (ticketId && isSummaryWrite && !fileExists(project, ticketId, "05_UAT.md")) {
-    return "06_SUMMARY.md should not be written before 05_UAT.md exists.";
+  if (ticketId && isReviewWrite && !fileExists(project, ticketId, "05_UAT.md")) {
+    return "06_REVIEW.md should not be written before 05_UAT.md exists.";
+  }
+
+  if (ticketId && isSummaryWrite && !fileExists(project, ticketId, "06_REVIEW.md")) {
+    return "07_SUMMARY.md should not be written before 06_REVIEW.md exists.";
   }
 
   if (!ticketId && isCodeLike) {

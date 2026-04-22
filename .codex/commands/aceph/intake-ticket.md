@@ -35,7 +35,7 @@ Ticket ID: required in `$ARGUMENTS`
 <process>
 Execute the intake workflow from @.auto-ceph-work/workflows/intake-ticket.md.
 Treat `[ACW]` in the Jira title and `repo == basename(project root)` as the intake gate.
-Treat `repo`, `remote`, and `endpoint` as the only required Jira description inputs for stage completion.
+Treat `repo` and `remote` as the only required Jira description inputs for stage completion.
 If Jira `repo` does not match the current project repo, do not treat the ticket as a valid intake success.
 If the ticket is a valid intake target, prepare the actual work branch as `feature/<TICKET-ID>` during intake before declaring `missing_required_inputs`.
 Use Atlassian MCP `jira_get_issue` and `jira_update_issue` to update the issue description itself. Do not use comment APIs for work-note writes.

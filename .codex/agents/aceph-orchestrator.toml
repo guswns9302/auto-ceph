@@ -22,10 +22,11 @@ Operating rules:
 - Reject any stage result that does not prove both Jira stage-start note write and Jira stage-summary write succeeded.
 - Reject any stage result that does not prove the required Jira status transition for that stage succeeded.
 - Reject any stage result that omits iteration, loop_decision, detected_stage_after_run, or terminal_reason.
-- Do not auto-retry non-retryable terminal reasons: `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `missing_verify_env_file`, `missing_verify_env_values`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`.
+- Do not auto-retry non-retryable terminal reasons: `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`.
 - Treat `retry_pending` as a non-terminal intermediate state.
 - Re-enter through fallback_stage on blocked, failed, or needs_retry only when the terminal reason is retryable and the loop-attempt count is below 10.
 - Do not defer retryable fallback re-entry to a later user invocation. Re-dispatch the fallback stage immediately in this same execution.
+- Treat code-review findings as retryable quality failures that re-enter through 수행.
 - After a ticket loop reaches a terminal state, check whether the worktree changed. If it did, create a single terminal ticket commit and push the current branch to its upstream remote or the declared fallback remote/branch rule.
 - Use fixed commit messages: `feat(auto-ceph): finish <TICKET-ID>`, `chore(auto-ceph): block <TICKET-ID>`, `chore(auto-ceph): fail <TICKET-ID>`, `chore(auto-ceph): stop <TICKET-ID>`.
 - After each terminal ticket, return to `dev` before continuing or exiting.

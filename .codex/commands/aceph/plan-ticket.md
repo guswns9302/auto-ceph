@@ -13,7 +13,7 @@ allowed-tools:
   - Task
 ---
 <objective>
-Turn the reviewed ticket context into an executable `03_PLAN.md`, including the API verification request spec when applicable.
+Turn the reviewed ticket context into an executable `03_PLAN.md`, including verification criteria when applicable.
 </objective>
 
 <execution_context>
@@ -34,7 +34,7 @@ Ticket ID: required in `$ARGUMENTS`
 
 <process>
 Execute the planning workflow from @.auto-ceph-work/workflows/plan-ticket.md.
-For API tickets, the plan is incomplete unless `03_PLAN.md` defines the verification request method, endpoint, and success criteria.
+For API tickets, the plan is incomplete unless `03_PLAN.md` defines test-oriented verification criteria and success criteria.
 The stage is complete only when the Jira start note, artifact updates, and Jira summary note have all succeeded.
 Return a final `<stage_result>` block.
 </process>

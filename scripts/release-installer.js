@@ -12,9 +12,7 @@ const MANAGED_BLOCK_END = "# <<< auto-ceph-work managed config <<<";
 const FEATURE_OWNERSHIP_COMMENT = "# auto-ceph-work codex_hooks ownership";
 const MUTATION_MATCHER = "Write|Edit|MultiEdit|apply_patch|functions.apply_patch";
 
-const ROOT_FILES = [
-  path.join("doc", "VERIFY_ENV.md"),
-];
+const ROOT_FILES = [];
 
 const ROOT_DIRS = [
   CANONICAL_DIR,
@@ -28,7 +26,7 @@ const LOCAL_CODEX_HOOK_FILES = [
 
 const LOCAL_CODEX_AGENT_DIR = path.join(".codex", "agents");
 const LOCAL_CODEX_COMMANDS_DIR = path.join(".codex", "commands");
-const LOCAL_CODEX_SKILL_DIR = path.join(".codex", "skills", "auto-ceph");
+const LOCAL_CODEX_SKILL_DIR = path.join(".codex", "skills");
 
 function getPackageVersion(sourceRoot) {
   const packageJsonPath = path.join(sourceRoot, "package.json");
@@ -163,7 +161,8 @@ function validateSourceTree(sourceRoot) {
   requirePathExists(path.join(sourceRoot, ".auto-ceph-work", "templates"), "doc templates");
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_AGENT_DIR), "custom agent directory");
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_COMMANDS_DIR), "custom command directory");
-  requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "SKILL.md"), "user skill");
+  requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph", "SKILL.md"), "user skill");
+  requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph-create", "SKILL.md"), "jira create skill");
   requirePathExists(
     path.join(sourceRoot, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"),
     "prompt guard hook"
@@ -312,12 +311,6 @@ function removeManagedConfig(projectRoot) {
 function copyManagedAssets(sourceRoot, projectRoot) {
   for (const fileName of ROOT_FILES) {
     const targetPath = path.join(projectRoot, fileName);
-    if (fileName === path.join("doc", "VERIFY_ENV.md")) {
-      if (!fs.existsSync(targetPath)) {
-        copyFile(path.join(sourceRoot, ".auto-ceph-work", "templates", "VERIFY_ENV.md"), targetPath);
-      }
-      continue;
-    }
     copyFile(path.join(sourceRoot, fileName), targetPath);
   }
 
@@ -370,7 +363,6 @@ function writeInstallMetadata(projectRoot, sourceRoot, version, managedPaths) {
 
 function validateInstalledProject(projectRoot, managedPaths) {
   const expectedFiles = [
-    path.join(projectRoot, "doc", "VERIFY_ENV.md"),
     path.join(projectRoot, ".codex", "hooks", "aceph-prompt-guard.js"),
     path.join(projectRoot, ".codex", "hooks", "aceph-workflow-guard.js"),
     path.join(projectRoot, ".codex", "hooks", "lib", "project-root.js"),
