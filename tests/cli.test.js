@@ -164,6 +164,66 @@ test("resolve_ticket_context extracts remote from 01_TICKET.md", () => {
   assert.match(result.stdout, /^base_branch='dev'$/m);
 });
 
+test("resolve_atlassian_identity extracts JIRA_USERNAME from Codex config", () => {
+  const rootDir = makeTempDir("aceph-atlassian-identity-root-");
+  const codexHome = path.join(rootDir, ".codex-home");
+  write(
+    path.join(codexHome, "config.toml"),
+    [
+      'model = "gpt-5.4"',
+      "",
+      "[mcp_servers.mcp-atlassian]",
+      'command = "uvx"',
+      "",
+      "[mcp_servers.mcp-atlassian.env]",
+      'JIRA_URL = "https://okestro.atlassian.net"',
+      'JIRA_USERNAME = "hj.yun@okestro.com"',
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "resolve_atlassian_identity.sh"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "resolve_atlassian_identity.sh"), "utf8")
+  );
+
+  const result = spawnSync(
+    "bash",
+    [path.join(rootDir, ".auto-ceph-work", "scripts", "resolve_atlassian_identity.sh")],
+    {
+      cwd: rootDir,
+      env: { ...process.env, CODEX_HOME: codexHome },
+      encoding: "utf8",
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^jira_username='hj\.yun@okestro\.com'$/m);
+  assert.match(result.stdout, new RegExp(`^config_file='${codexHome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\/config\\.toml'$`, "m"));
+});
+
+test("resolve_atlassian_identity returns empty username when config is missing", () => {
+  const rootDir = makeTempDir("aceph-atlassian-identity-missing-root-");
+  const codexHome = path.join(rootDir, ".codex-home");
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "resolve_atlassian_identity.sh"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "resolve_atlassian_identity.sh"), "utf8")
+  );
+
+  const result = spawnSync(
+    "bash",
+    [path.join(rootDir, ".auto-ceph-work", "scripts", "resolve_atlassian_identity.sh")],
+    {
+      cwd: rootDir,
+      env: { ...process.env, CODEX_HOME: codexHome },
+      encoding: "utf8",
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^config_not_found=1$/m);
+  assert.match(result.stdout, /^jira_username=''$/m);
+});
+
 test("prepare_ticket_branch creates and checks out the canonical ticket branch from dev", () => {
   const rootDir = makeTempDir("ceph-service-api-");
   const remoteDir = makeTempDir("ceph-service-api-remote-");

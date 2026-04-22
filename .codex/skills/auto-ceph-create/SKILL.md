@@ -24,6 +24,7 @@ description: Auto-Ceph intake 가능한 Jira 티켓을 대화형으로 생성하
 2. `.auto-ceph-work/references/jira-create-template.md`
 3. `.auto-ceph-work/references/runtime-contract.md`
 4. `.codex/skills/auto-ceph/SKILL.md`
+5. `.auto-ceph-work/scripts/resolve_atlassian_identity.sh`
 
 ## Conversation Rules
 
@@ -34,10 +35,12 @@ description: Auto-Ceph intake 가능한 Jira 티켓을 대화형으로 생성하
 5. `문제점`이 확정되기 전에는 `개선 방향`을 제시하지 않는다.
 6. 확정된 `문제점` 기준으로만 `개선 방향` 후보 2~4개를 제시한다.
 7. 사용자가 후보를 선택하지 않고 수정 요청을 하면 그 요청을 반영해 후보를 다시 정리하고 확인받는다.
-8. `project_key`와 `issue_type`은 매번 명시적으로 질문한다.
-9. `repo`는 현재 프로젝트 루트 디렉터리명으로 기본 제안한다.
-10. `remote`는 로컬 git remote가 하나면 기본 제안하고, 여러 개면 사용자에게 선택시킨다.
-11. 최종 제목과 description preview를 보여주고 사용자의 생성 확인이 있기 전까지 Jira를 생성하지 않는다.
+8. `project_key`는 항상 `CDS`, `issue_type`은 항상 `Task`로 고정한다. 이 값들을 사용자에게 다시 묻지 않는다.
+9. reporter와 assignee는 모두 `.auto-ceph-work/scripts/resolve_atlassian_identity.sh`가 읽은 `jira_username`으로 고정한다.
+10. `jira_username`이 비어 있으면 생성 자체를 실패로 처리한다.
+11. `repo`는 현재 프로젝트 루트 디렉터리명으로 기본 제안한다.
+12. `remote`는 로컬 git remote가 하나면 기본 제안하고, 여러 개면 사용자에게 선택시킨다.
+13. 최종 제목과 description preview를 보여주고 사용자의 생성 확인이 있기 전까지 Jira를 생성하지 않는다.
 
 ## Jira Format Rules
 
@@ -62,9 +65,18 @@ description: Auto-Ceph intake 가능한 Jira 티켓을 대화형으로 생성하
 ## MCP Rules
 
 1. 실제 생성은 `jira_create_issue`를 사용한다.
-2. 필요하면 생성 직후 `jira_get_issue`로 결과를 확인할 수 있다.
-3. preview 승인 전에는 `jira_create_issue`를 호출하지 않는다.
-4. 생성 시 description에는 사용자가 확정한 `문제점`과 선택한 `개선 방향`만 넣는다.
+2. 생성 전 `.auto-ceph-work/scripts/resolve_atlassian_identity.sh`를 실행해 `jira_username`을 확인한다.
+3. `jira_create_issue`에는 항상 아래를 사용한다.
+   - `project_key="CDS"`
+   - `issue_type="Task"`
+   - `assignee=jira_username`
+   - `additional_fields`에 reporter를 `jira_username`으로 포함
+4. 생성 직후 `jira_get_agile_boards(project_key="CDS", board_type="scrum")`와 `jira_get_sprints_from_board(state="active")`로 active sprint를 찾는다.
+5. `CDS` scrum board의 active sprint가 정확히 1개일 때만 `jira_add_issues_to_sprint`로 이슈를 즉시 추가한다.
+6. active sprint가 없거나 여러 개면 생성을 실패로 처리한다. backlog fallback은 허용하지 않는다.
+7. 필요하면 생성 직후 `jira_get_issue`로 결과를 확인할 수 있다.
+8. preview 승인 전에는 `jira_create_issue`를 호출하지 않는다.
+9. 생성 시 description에는 사용자가 확정한 `문제점`과 선택한 `개선 방향`만 넣는다.
 
 ## User-Facing Contract
 
@@ -72,5 +84,8 @@ description: Auto-Ceph intake 가능한 Jira 티켓을 대화형으로 생성하
 - 생성 전에 최소 두 번의 명시적 합의를 거친다.
   - `문제점` 확정
   - `개선 방향` 확정
+- 생성되는 Jira 이슈는 항상 `CDS` 프로젝트의 `Task`다.
+- 생성되는 Jira 이슈의 reporter와 assignee는 항상 같은 사용자(`JIRA_USERNAME`)다.
+- 생성된 이슈는 backlog에 두지 않고 현재 active sprint에 즉시 배정해야 한다.
 - 생성된 티켓은 이후 `$auto-ceph <TICKET-ID>`로 바로 이어서 처리할 수 있어야 한다.
 - 생성이 끝나면 Jira issue key, 제목, 핵심 입력(`repo`, `remote`)을 짧게 보고한다.

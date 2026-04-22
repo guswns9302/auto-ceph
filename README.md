@@ -67,7 +67,7 @@ Auto-Ceph는 고정된 단계 순서로 티켓을 처리한다.
 
 사용자는 내부 `aceph:*` command를 직접 고르지 않고 `$auto-ceph` 또는 `$auto-ceph <TICKET-ID>`만 호출한다.
 
-티켓을 새로 만들 때는 `$auto-ceph-create`를 사용한다. 이 스킬은 사용자와 대화하며 `문제점`을 먼저 확정하고, 이어서 `개선 방향`을 선택받은 뒤 Auto-Ceph intake 가능한 Jira 티켓을 생성한다.
+티켓을 새로 만들 때는 `$auto-ceph-create`를 사용한다. 이 스킬은 사용자와 대화하며 `문제점`을 먼저 확정하고, 이어서 `개선 방향`을 선택받은 뒤 Auto-Ceph intake 가능한 Jira 티켓을 생성한다. 생성 정책은 고정이며, 항상 `CDS` 프로젝트의 `Task`를 만들고 reporter/assignee는 Atlassian MCP 설정의 `JIRA_USERNAME`과 같은 사용자로 넣는다. 생성된 이슈는 backlog에 두지 않고 `CDS` scrum board의 active sprint에 즉시 추가한다.
 
 무인자 `$auto-ceph`:
 
