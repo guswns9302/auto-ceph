@@ -1,6 +1,6 @@
 {
   "name": "@eddy_yun/auto-ceph-work",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "Auto-Ceph ticket workflow installer for Codex project scopes",
   "private": false,
   "bin": {
