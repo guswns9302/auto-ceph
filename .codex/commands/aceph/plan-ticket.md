@@ -35,5 +35,5 @@ Ticket ID: required in `$ARGUMENTS`
 Execute the planning workflow from @.auto-ceph-work/workflows/plan-ticket.md.
 For API tickets, the plan is incomplete unless `03_PLAN.md` defines test-oriented verification criteria and success criteria.
 The stage is complete only when the Jira start note, artifact updates, and Jira summary note have all succeeded.
-Return a final `<stage_result>` block.
+Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

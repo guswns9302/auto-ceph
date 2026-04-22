@@ -180,6 +180,7 @@ Ralph loop next iteration candidate: ${next_iteration:-1}
 
 Mandatory behavior:
 - Follow the stage command and workflow exactly.
+- This stage is a narrow worker task. Do not rely on parent-thread chat context; use only the explicit stage prompt, referenced files, and current workspace state.
 - Treat \`retry_pending\` as a non-terminal intermediate state. If the main session marks a retryable failure, it must re-spawn the fallback stage in the same \$auto-ceph run instead of waiting for another user invocation.
 - For intake, treat \`[ACW]\` in the Jira title and \`repo == ${project_repo:-unknown}\` as the intake gate.
 - For intake, require \`repo\` and \`remote\` from Jira description as minimum execution inputs.
@@ -198,7 +199,11 @@ Mandatory behavior:
 stage: $STAGE
 ticket_id: $ticket_id
 status: passed
+agent_binding: $(basename "$runtime_agent_file" .toml)
 artifacts_updated: $stage_artifact
+jira_stage_note_started: yes
+jira_stage_summary_written: yes
+jira_status_transition_applied: unchanged
 jira_updates_applied: note=$stage_note
 next_stage: $next_stage
 fallback_stage: $fallback_stage

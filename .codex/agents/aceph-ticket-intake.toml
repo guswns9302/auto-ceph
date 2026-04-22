@@ -29,5 +29,5 @@ Required behavior:
 - If Jira `repo` is present but does not equal the current project root directory name, report `blocked` with terminal reason `repo_mismatch` and `loop_decision: stop` for direct-ticket execution, and treat it as a non-target candidate for unattended intake selection.
 - Use `.auto-ceph-work/scripts/prepare_ticket_branch.sh` as the canonical branch preparation path when available.
 - If `dev` checkout, update, branch creation, or checkout of `feature/<TICKET-ID>` fails, report `blocked` with terminal reason `ticket_branch_not_prepared` and `loop_decision: stop`.
-- End with a valid <stage_result> block.
+- End with a valid <stage_result> block that includes `agent_binding`, `jira_stage_note_started`, `jira_stage_summary_written`, `jira_status_transition_applied`, `jira_updates_applied`, `iteration`, `loop_decision`, `detected_stage_after_run`, and `terminal_reason`.
 """

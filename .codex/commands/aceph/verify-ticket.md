@@ -38,5 +38,5 @@ Execute the verification workflow from @.auto-ceph-work/workflows/verify-ticket.
 If the ticket is API-oriented, run tests first and summarize the verification result from automated checks and updated artifacts.
 This stage validates behavior and release readiness only; code quality review belongs to the separate `코드 리뷰` stage.
 The stage is complete only when the Jira start note, the required `REVIEW` transition, artifact updates, and Jira summary note have all succeeded.
-Return a final `<stage_result>` block.
+Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

@@ -39,5 +39,5 @@ If Jira `repo` does not match the current project repo, do not treat the ticket 
 If the ticket is a valid intake target, prepare the actual work branch as `feature/<TICKET-ID>` during intake before declaring `missing_required_inputs`.
 Use Atlassian MCP `jira_get_issue` and `jira_update_issue` to update the issue description itself. Do not use comment APIs for work-note writes.
 The stage is complete only when the Jira start note, the required `IN PROGRESS` transition, artifact updates, and Jira summary note have all succeeded.
-Return a final `<stage_result>` block.
+Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

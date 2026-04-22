@@ -749,4 +749,46 @@ test("build_stage_prompt includes current project repo for intake matching", () 
   assert.match(result.stdout, /- project_repo: ceph-service-api-[^\n]+/);
   assert.match(result.stdout, /For intake, treat `\[ACW\]` in the Jira title and `repo == ceph-service-api-[^`]+` as the intake gate\./);
   assert.match(result.stdout, /Treat `retry_pending` as a non-terminal intermediate state\./);
+  assert.match(result.stdout, /agent_binding: aceph-ticket-intake/);
+  assert.match(result.stdout, /jira_stage_note_started: yes/);
+  assert.match(result.stdout, /jira_stage_summary_written: yes/);
+  assert.match(result.stdout, /jira_status_transition_applied: unchanged/);
+  assert.match(result.stdout, /loop_decision: advance/);
+  assert.match(result.stdout, /terminal_reason: none/);
+  assert.match(result.stdout, /Do not rely on parent-thread chat context/);
+});
+
+test("build_stage_prompt includes required result fields for a non-transition stage", () => {
+  const rootDir = makeTempDir("ceph-service-api-review-");
+  write(
+    path.join(rootDir, "doc", "CDS-3000", "01_TICKET.md"),
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
+  );
+  write(path.join(rootDir, "doc", "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"), "# UAT\n- 최종 판단: pass\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "06_REVIEW.md"), "# REVIEW\n- 결과: pending\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "07_SUMMARY.md"), "# SUMMARY\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 1\n- 최대 iteration: 10\n- 현재 loop 상태: in_progress\n- 현재 stage: 코드 리뷰\n- 마지막 결과 상태: passed\n- 마지막 loop 결정: advance\n- 마지막 fallback 단계: 수행\n- 마지막 종료 사유: none\n\n## Iteration History\n");
+  for (const scriptName of ["resolve_ticket_context.sh", "resolve_loop_state.sh", "build_stage_prompt.sh"]) {
+    write(
+      path.join(rootDir, ".auto-ceph-work", "scripts", scriptName),
+      fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", scriptName), "utf8")
+    );
+  }
+
+  const result = runScript(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "build_stage_prompt.sh"),
+    ["코드 리뷰", "CDS-3000"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /agent_binding: aceph-ticket-code-review/);
+  assert.match(result.stdout, /jira_stage_note_started: yes/);
+  assert.match(result.stdout, /jira_stage_summary_written: yes/);
+  assert.match(result.stdout, /jira_status_transition_applied: unchanged/);
+  assert.match(result.stdout, /fallback_stage: 수행/);
+  assert.match(result.stdout, /terminal_reason: none/);
 });

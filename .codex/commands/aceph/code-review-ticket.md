@@ -38,5 +38,5 @@ Focus on code quality, regressions, edge cases, structure, maintainability, and 
 Do not treat this stage as a second verification run and do not require test reruns unless a review claim cannot be supported otherwise.
 If blocking findings exist, record `changes_requested` and return a retryable stage result with fallback `수행`.
 The stage is complete only when the Jira start note, artifact updates, and Jira summary note have all succeeded.
-Return a final `<stage_result>` block.
+Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

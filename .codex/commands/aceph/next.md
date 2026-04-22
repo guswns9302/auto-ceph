@@ -30,6 +30,7 @@ Ticket ID: optional in `$ARGUMENTS`
 - Resolve the current stage with `.auto-ceph-work/scripts/detect_ticket_stage.sh`.
 - Resolve the current loop state with `.auto-ceph-work/scripts/resolve_loop_state.sh`.
 - For each iteration step, build the stage prompt from the canonical stage command, workflow, and agent spec, then spawn the matching stage agent directly from the main session.
+- Spawn stage agents without forking parent-thread chat context. The stage prompt must carry the full required handoff.
 - Treat `retry_pending` as a non-terminal intermediate state and immediately consume it by spawning `fallback_stage` again in this same execution when the failure is retryable and the loop limit allows it.
 - After a ticket reaches a terminal state, if the worktree changed, create a terminal ticket commit only on the prepared ticket branch and push it using the current branch upstream first, then ticket `remote` + current ticket branch `feature/<TICKET-ID>` as fallback.
 - After each terminal ticket, always return to `dev` before selecting or starting the next ticket.

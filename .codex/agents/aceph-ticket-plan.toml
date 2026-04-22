@@ -20,5 +20,5 @@ Required behavior:
 - After 03_PLAN.md is updated, replace that same description stage block with a short bullet-list stage summary through `jira_update_issue`.
 - Do not use Jira comment APIs for work-note writes.
 - If either Jira description work-note write fails, treat the stage as incomplete and do not report success.
-- End with a valid <stage_result> block.
+- End with a valid <stage_result> block that includes `agent_binding`, `jira_stage_note_started`, `jira_stage_summary_written`, `jira_status_transition_applied`, `jira_updates_applied`, `iteration`, `loop_decision`, `detected_stage_after_run`, and `terminal_reason`.
 """
