@@ -366,7 +366,7 @@ function validateInstalledProject(projectRoot, managedPaths) {
     path.join(projectRoot, ".codex", "hooks", "aceph-prompt-guard.js"),
     path.join(projectRoot, ".codex", "hooks", "aceph-workflow-guard.js"),
     path.join(projectRoot, ".codex", "hooks", "lib", "project-root.js"),
-    path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml"),
+    path.join(projectRoot, ".codex", "agents", "aceph-ticket-intake.toml"),
     path.join(projectRoot, ".codex", "commands", "aceph", "next.md"),
     path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md"),
     path.join(projectRoot, PROJECT_CONFIG_FILE),
@@ -455,6 +455,14 @@ function uninstallProject(options) {
 
   for (const relativePath of removalList) {
     const absolutePath = path.join(projectRoot, relativePath);
+    fs.rmSync(absolutePath, { recursive: true, force: true });
+    cleanupEmptyParents(projectRoot, absolutePath);
+  }
+
+  const legacyPaths = [
+    path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml"),
+  ];
+  for (const absolutePath of legacyPaths) {
     fs.rmSync(absolutePath, { recursive: true, force: true });
     cleanupEmptyParents(projectRoot, absolutePath);
   }

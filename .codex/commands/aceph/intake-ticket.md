@@ -2,7 +2,6 @@
 name: aceph:intake-ticket
 description: Intake an assigned Jira ticket into 01_TICKET.md and 02_CONTEXT.md, then sync Jira to IN PROGRESS.
 argument-hint: "<TICKET-ID>"
-agent: aceph-ticket-intake
 allowed-tools:
   - Read
   - Write

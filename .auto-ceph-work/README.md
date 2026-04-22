@@ -5,7 +5,7 @@
 ## 목적
 
 - Jira 티켓 기반 업무를 단계형 오케스트레이션으로 운영한다.
-- 각 단계는 전용 command, agent, workflow 문서로 분리한다.
+- 각 단계는 전용 contract, agent, workflow 문서로 분리한다.
 - Codex의 1차 runtime surface는 `.codex/skills/auto-ceph`, `.codex/agents`, `.codex/commands`, `.codex/hooks`다.
 - `.auto-ceph-work/`는 workflows, scripts, templates, references 같은 internal assets를 제공한다.
 
@@ -33,9 +33,9 @@
 
 ## 런타임 원칙
 
-- 오케스트레이터는 현재 단계만 판단하고 다음 stage agent를 호출한다.
+- 메인 세션은 현재 단계만 판단하고 다음 stage agent를 직접 spawn한다.
 - stage agent는 문서, 코드, Jira를 직접 갱신한다.
-- 사용자 진입점은 `.codex/commands/aceph/*.md`가 담당한다.
+- 사용자 진입점은 `$auto-ceph` 스킬이며, `.codex/commands/aceph/*.md`는 stage contract/prompt source로 사용한다.
 - canonical agent spec은 `.codex/agents/*.toml`에 둔다.
 - `PreToolUse` hook은 canonical flow를 대체하지 않고 advisory safety layer로만 동작한다.
 - `.auto-ceph-work/scripts/prepare_ticket_branch.sh`는 intake 대상 티켓의 canonical branch preparation helper다.

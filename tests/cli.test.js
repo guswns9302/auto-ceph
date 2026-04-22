@@ -36,8 +36,8 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
   write(path.join(rootDir, ".auto-ceph-work", "README.md"), "# work\n");
-  write(path.join(rootDir, ".codex", "agents", "aceph-orchestrator.toml"), "name = \"aceph-orchestrator\"\n");
-  write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nagent: aceph-orchestrator\n---\n");
+  write(path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"), "name = \"aceph-ticket-intake\"\n");
+  write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nname: aceph:next\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
 }
@@ -76,7 +76,7 @@ test("cli install routes to the installer and uses package version by default", 
   assert.match(result.stdout, new RegExp(`version: ${packageVersion.replace(/\./g, "\\.")}`));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "install.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "project.json")));
-  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-ticket-intake.toml")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "commands", "aceph", "next.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));

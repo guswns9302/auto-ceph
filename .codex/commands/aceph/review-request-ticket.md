@@ -2,7 +2,6 @@
 name: aceph:review-request-ticket
 description: Summarize a reviewed ticket in 07_SUMMARY.md.
 argument-hint: "<TICKET-ID>"
-agent: aceph-ticket-review-request
 allowed-tools:
   - Read
   - Write

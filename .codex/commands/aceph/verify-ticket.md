@@ -2,7 +2,6 @@
 name: aceph:verify-ticket
 description: Verify implemented work with tests, Playwright, and manual checks, then write 05_UAT.md.
 argument-hint: "<TICKET-ID>"
-agent: aceph-ticket-verify
 allowed-tools:
   - Read
   - Write

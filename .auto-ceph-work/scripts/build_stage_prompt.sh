@@ -180,7 +180,7 @@ Ralph loop next iteration candidate: ${next_iteration:-1}
 
 Mandatory behavior:
 - Follow the stage command and workflow exactly.
-- Treat \`retry_pending\` as a non-terminal intermediate state. If the orchestrator marks a retryable failure, it must re-dispatch the fallback stage in the same \$auto-ceph run instead of waiting for another user invocation.
+- Treat \`retry_pending\` as a non-terminal intermediate state. If the main session marks a retryable failure, it must re-spawn the fallback stage in the same \$auto-ceph run instead of waiting for another user invocation.
 - For intake, treat \`[ACW]\` in the Jira title and \`repo == ${project_repo:-unknown}\` as the intake gate.
 - For intake, require \`repo\` and \`remote\` from Jira description as minimum execution inputs.
 - For intake, if Jira \`repo\` does not equal the current project repo \`${project_repo:-unknown}\`, treat the ticket as a repo mismatch and do not proceed as a valid intake target.

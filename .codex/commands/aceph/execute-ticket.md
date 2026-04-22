@@ -2,7 +2,6 @@
 name: aceph:execute-ticket
 description: Execute 03_PLAN.md on the prepared ticket branch and record implementation progress in 04_EXECUTION.md.
 argument-hint: "<TICKET-ID>"
-agent: aceph-ticket-execute
 allowed-tools:
   - Read
   - Write

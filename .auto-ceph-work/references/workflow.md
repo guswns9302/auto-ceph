@@ -21,8 +21,8 @@
 
 ## Entry Points
 
-- top-level orchestrator: `.codex/commands/aceph/next.md`
-- stage dispatch target: the `Canonical command` for the detected stage
+- top-level orchestrator: `$auto-ceph` main session
+- stage dispatch target: the `Canonical agent` and `Canonical command` for the detected stage
 - 티켓 자동 선택 대상: 제목에 `[ACW]`가 있고 `repo`가 현재 프로젝트 루트 디렉터리명과 일치하는 Jira `TO DO` 티켓
 - 자동 선택 우선순위: repo 일치 후보 중 `created ASC` 기준으로 가장 오래된 1건
 - 무인자 `$auto-ceph`는 시작 시점의 필터된 티켓 스냅샷을 `created ASC`로 정렬하고, 그 배열을 같은 실행 안에서 순차 처리한다
@@ -43,7 +43,7 @@
 
 - stage 결과가 `blocked`, `failed`, `needs_retry`여도 `terminal_reason`이 입력/설정 오류면 재진입하지 않는다
 - 비재시도 종료 사유는 `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`다
-- 그 외 stage 결과는 오케스트레이터가 같은 실행 안에서 즉시 `fallback_stage`로 재진입한다
+- 그 외 stage 결과는 메인 세션이 같은 실행 안에서 즉시 `fallback_stage`로 재진입한다
 - `코드 리뷰` 단계에서 `changes_requested`가 나오면 retryable failure로 보고 `수행`으로 되돌린다
 - 같은 loop 안의 stage 전진은 iteration을 올리지 않는다
 - retry 시에는 다음 iteration을 연 뒤 그 iteration의 `fallback_stage`를 같은 실행 안에서 바로 소비한다

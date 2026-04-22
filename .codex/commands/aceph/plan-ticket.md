@@ -2,7 +2,6 @@
 name: aceph:plan-ticket
 description: Write 03_PLAN.md with git preparation, implementation tasks, and verification criteria for a reviewed ticket.
 argument-hint: "<TICKET-ID>"
-agent: aceph-ticket-plan
 allowed-tools:
   - Read
   - Write

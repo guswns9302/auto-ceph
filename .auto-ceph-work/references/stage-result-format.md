@@ -30,8 +30,8 @@ summary: one-line summary
 - `failed`
 - `needs_retry`
 
-`agent_binding`은 실제로 실행된 custom agent name과 일치해야 한다.
-오케스트레이터가 inline으로 수행한 경우는 유효한 결과로 취급하지 않는다.
+`agent_binding`은 메인 세션이 직접 spawn한 실제 stage custom agent name과 일치해야 한다.
+메인 세션이 inline으로 수행한 경우는 유효한 결과로 취급하지 않는다.
 `jira_stage_note_started`는 description 본문의 `작업 노트` 섹션에 해당 stage header가 반영됐다는 뜻이어야 한다.
 `jira_stage_summary_written`는 description 본문의 같은 stage 블록에 요약 bullet이 반영됐다는 뜻이어야 한다.
 `jira_stage_note_started`와 `jira_stage_summary_written`가 모두 `yes`가 아니면 stage 완료 결과로 취급하지 않는다.
@@ -47,4 +47,4 @@ summary: one-line summary
 인테이크 단계에서 branch preparation helper가 현재 티켓 브랜치를 준비하지 못하면 `terminal_reason: ticket_branch_not_prepared`를 사용한다.
 `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`는 비재시도 종료 사유다.
 intake 단계에서 `dev` checkout, 최신화, `feature/<TICKET-ID>` 생성 또는 checkout이 실패하면 `ticket_branch_not_prepared`를 terminal reason으로 사용한다.
-비재시도 종료 사유에서는 `loop_decision: stop`을 사용하고 오케스트레이터는 자동 재진입하지 않는다.
+비재시도 종료 사유에서는 `loop_decision: stop`을 사용하고 메인 세션 orchestration은 자동 재진입하지 않는다.

@@ -2,7 +2,6 @@
 name: aceph:code-review-ticket
 description: Review implemented work for code quality, risk, and maintainability, then write 06_REVIEW.md.
 argument-hint: "<TICKET-ID>"
-agent: aceph-ticket-code-review
 allowed-tools:
   - Read
   - Write

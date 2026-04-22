@@ -41,8 +41,8 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
   write(path.join(rootDir, ".auto-ceph-work", "README.md"), "# work\n");
-  write(path.join(rootDir, ".codex", "agents", "aceph-orchestrator.toml"), "name = \"aceph-orchestrator\"\n");
-  write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nagent: aceph-orchestrator\n---\n");
+  write(path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"), "name = \"aceph-ticket-intake\"\n");
+  write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nname: aceph:next\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
 }
@@ -85,7 +85,7 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks", "aceph-prompt-guard.js")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks", "lib", "project-root.js")));
-  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-ticket-intake.toml")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "commands", "aceph", "next.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
@@ -101,6 +101,22 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.match(config, /\.codex\/hooks\/aceph-prompt-guard\.js/);
   assert.match(config, new RegExp(escapeForRegExp(projectRoot)));
   assert.doesNotMatch(config, /event = "Stop"/);
+});
+
+test("installProject removes legacy aceph-orchestrator asset during refresh", () => {
+  const sourceRoot = makeTempDir("aceph-source-");
+  const projectRoot = makeTempDir("aceph-project-");
+  makeSourceTree(sourceRoot);
+  write(path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml"), "legacy\n");
+
+  installProject({
+    sourceRoot,
+    projectRoot,
+    version: "v1.2.3",
+  });
+
+  assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml")), false);
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-ticket-intake.toml")));
 });
 
 test("uninstallProject removes managed assets and local config block only", () => {

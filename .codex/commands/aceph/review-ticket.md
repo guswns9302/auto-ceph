@@ -2,7 +2,6 @@
 name: aceph:review-ticket
 description: Review Jira source against ticket docs and lock the implementation scope for the ticket.
 argument-hint: "<TICKET-ID>"
-agent: aceph-ticket-review
 allowed-tools:
   - Read
   - Write
