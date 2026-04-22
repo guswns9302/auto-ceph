@@ -1,0 +1,87 @@
+# Auto-Ceph Work
+
+이 디렉터리는 Auto-Ceph 업무용 내부 워크플로 자산을 담는다.
+
+## 목적
+
+- Jira 티켓 기반 업무를 단계형 오케스트레이션으로 운영한다.
+- 각 단계는 전용 command, agent, workflow 문서로 분리한다.
+- Codex의 1차 runtime surface는 `.codex/skills/auto-ceph`, `.codex/agents`, `.codex/commands`, `.codex/hooks`다.
+- `.auto-ceph-work/`는 workflows, scripts, templates, references 같은 internal assets를 제공한다.
+
+## 구조
+
+```text
+.auto-ceph-work/
+  README.md
+  hooks/
+  workflows/
+  references/
+  templates/
+  scripts/
+```
+
+## 단계
+
+1. 문제 확인
+2. 문제 검토
+3. 계획
+4. 수행
+5. 검증
+6. 리뷰 요청
+
+## 런타임 원칙
+
+- 오케스트레이터는 현재 단계만 판단하고 다음 stage agent를 호출한다.
+- stage agent는 문서, 코드, Jira를 직접 갱신한다.
+- 사용자 진입점은 `.codex/commands/aceph/*.md`가 담당한다.
+- canonical agent spec은 `.codex/agents/*.toml`에 둔다.
+- `PreToolUse` hook은 canonical flow를 대체하지 않고 advisory safety layer로만 동작한다.
+- `.auto-ceph-work/scripts/prepare_ticket_branch.sh`는 intake 대상 티켓의 canonical branch preparation helper다.
+
+## Project Activation
+
+- 실제 업무 프로젝트 루트에는 `.auto-ceph-work/` 디렉터리와 그 안의 `project.json`이 있어야 한다.
+- hook은 `.auto-ceph-work/` 존재 여부와 `project.json`을 기준으로만 활성화된다.
+- 이를 찾지 못하면 hook은 즉시 no-op 처리된다.
+- 릴리즈 설치기는 이 내부 설정 파일과 hook 등록을 자동으로 설치한다.
+
+예시:
+
+```json
+{
+  "version": 1,
+  "workflow": "auto-ceph-ticket-loop",
+  "docs_root": "doc",
+  "ticket_root_pattern": "doc/<TICKET-ID>"
+}
+```
+
+## Hooks
+
+- `.auto-ceph-work/hooks/aceph-prompt-guard.js`
+  - ticket docs, canonical command/workflow/agent 문서에 들어가는 위험한 텍스트를 advisory로 경고
+- `.auto-ceph-work/hooks/aceph-workflow-guard.js`
+  - 현재 파일 상태 기준으로 stage 이탈 가능성이 높은 수정 시도를 advisory로 경고
+
+상세 규칙은 `.auto-ceph-work/references/hooks.md`를 따른다.
+
+## Jira Work Note Policy
+
+- stage별 Jira 작업 노트는 comment가 아니라 issue description 본문의 `### 작업 노트` 섹션을 수정해서 남긴다.
+- stage 시작 기록과 stage 요약 기록은 같은 stage 블록 안에서 누적/교체한다.
+- 다른 description 섹션(`프로젝트`, `문제점`, `개선 방향`)은 보존해야 한다.
+
+## Installation
+
+- 이 저장소는 npm 패키지로 배포하고, 대상 프로젝트에서는 `npx @eddy_yun/auto-ceph-work install`로 설치한다.
+- 설치 시 프로젝트 로컬 `.codex/config.toml`이 자동으로 병합되며, hook 경로는 설치된 프로젝트의 `.codex/hooks/*.js`를 가리킨다.
+- 전역 `~/.codex/config.toml`은 수정하지 않는다.
+
+예시:
+
+```bash
+npx @eddy_yun/auto-ceph-work install --project /path/to/your-project --version v0.1.0
+```
+
+설치와 업데이트는 npm 엔트리포인트만 사용한다.

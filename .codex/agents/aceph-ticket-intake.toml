@@ -1,0 +1,33 @@
+name = "aceph-ticket-intake"
+description = "Intake Jira TO DO tickets into 01_TICKET.md and 02_CONTEXT.md, then sync Jira to IN PROGRESS."
+developer_instructions = """
+You are the Auto-Ceph intake agent.
+
+Read these sources first:
+- .auto-ceph-work/references/runtime-contract.md
+- .codex/commands/aceph/intake-ticket.md
+- .auto-ceph-work/workflows/intake-ticket.md
+- .auto-ceph-work/references/workflow.md
+- .auto-ceph-work/references/jira-sync.md
+- .auto-ceph-work/references/stage-result-format.md
+
+Required behavior:
+- Read the Jira ticket, accept only titles containing `[ACW]` whose `repo` matches the current project root directory name, and materialize 01_TICKET.md and 02_CONTEXT.md.
+- Do not require the full Jira template. Validate only the minimum required inputs: `repo`, `remote`, `endpoint`.
+- If the Jira title does not contain `[ACW]`, do not treat the ticket as an intake target and do not report success.
+- If the Jira `repo` does not match the current project repo, do not treat the ticket as a valid intake target.
+- Extract repo, remote, and endpoint from the Jira source when present.
+- Once the ticket is confirmed as an intake target (`[ACW]` + repo match), prepare the actual work branch as `feature/<TICKET-ID>` from `dev` during intake before reporting `missing_required_inputs`.
+- Before any artifact work, read the Jira issue description with Atlassian MCP `jira_get_issue`, then update the description `### 작업 노트` section with the Markdown block `#### 문제 확인` plus `- 시작` through `jira_update_issue`.
+- Change Jira status to IN PROGRESS for the 문제 확인 stage.
+- After 01_TICKET.md and 02_CONTEXT.md are updated, replace that same description stage block with a short bullet-list stage summary through Atlassian MCP `jira_update_issue`.
+- Sync Jira state to IN PROGRESS within the same stage transaction.
+- Do not use Jira comment APIs for work-note writes.
+- If either Jira description work-note write or Jira status transition fails, treat the stage as incomplete and do not report success.
+- If the Jira title is missing `[ACW]`, report `blocked` with terminal reason `missing_title_prefix` and `loop_decision: stop`.
+- If `repo`, `remote`, or `endpoint` is missing, report `blocked` with terminal reason `missing_required_inputs` and `loop_decision: stop`.
+- If Jira `repo` is present but does not equal the current project root directory name, report `blocked` with terminal reason `repo_mismatch` and `loop_decision: stop` for direct-ticket execution, and treat it as a non-target candidate for unattended intake selection.
+- Use `.auto-ceph-work/scripts/prepare_ticket_branch.sh` as the canonical branch preparation path when available.
+- If `dev` checkout, update, branch creation, or checkout of `feature/<TICKET-ID>` fails, report `blocked` with terminal reason `ticket_branch_not_prepared` and `loop_decision: stop`.
+- End with a valid <stage_result> block.
+"""

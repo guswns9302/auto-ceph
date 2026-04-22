@@ -1,0 +1,156 @@
+"use strict";
+
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+const {
+  INSTALL_META_FILE,
+  MANAGED_BLOCK_START,
+  ensureCodexHooksFeature,
+  getPackageVersion,
+  installProject,
+  parseArgs,
+  uninstallProject,
+  upsertManagedConfigBlock,
+} = require("../scripts/release-installer.js");
+
+function makeTempDir(prefix) {
+  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+}
+
+function write(filePath, content) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content);
+}
+
+function makeSourceTree(rootDir) {
+  write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
+    version: 1,
+    workflow: "auto-ceph-ticket-loop",
+    docs_root: "doc",
+    ticket_root_pattern: "doc/<TICKET-ID>",
+  }, null, 2));
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "VERIFY_ENV.md"), "# verify env\n");
+  write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
+  write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
+  write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"), "console.log('prompt');\n");
+  write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
+  write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
+  write(path.join(rootDir, ".auto-ceph-work", "README.md"), "# work\n");
+  write(path.join(rootDir, ".codex", "agents", "aceph-orchestrator.toml"), "name = \"aceph-orchestrator\"\n");
+  write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nagent: aceph-orchestrator\n---\n");
+  write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
+}
+
+test("ensureCodexHooksFeature adds or upgrades the features block", () => {
+  const created = ensureCodexHooksFeature('model = "gpt-5.4"\n');
+  assert.match(created, /\[features\]/);
+  assert.match(created, /codex_hooks = true/);
+
+  const updated = ensureCodexHooksFeature('[features]\ncodex_hooks = false\n');
+  assert.match(updated, /codex_hooks = true/);
+  assert.doesNotMatch(updated, /codex_hooks = false/);
+});
+
+test("parseArgs uses package version as the default installer version", () => {
+  const args = parseArgs(["install"]);
+  assert.equal(args.version, getPackageVersion(path.join(__dirname, "..")));
+});
+
+test("upsertManagedConfigBlock replaces a previous managed block", () => {
+  const first = upsertManagedConfigBlock("", "/tmp/project-a");
+  const second = upsertManagedConfigBlock(first, "/tmp/project-b");
+
+  assert.match(second, new RegExp(escapeForRegExp(MANAGED_BLOCK_START), "g"));
+  assert.equal(second.match(new RegExp(escapeForRegExp(MANAGED_BLOCK_START), "g")).length, 1);
+  assert.match(second, /project-b/);
+  assert.doesNotMatch(second, /project-a/);
+});
+
+test("installProject copies assets and patches local .codex/config.toml", () => {
+  const sourceRoot = makeTempDir("aceph-source-");
+  const projectRoot = makeTempDir("aceph-project-");
+  makeSourceTree(sourceRoot);
+
+  installProject({
+    sourceRoot,
+    projectRoot,
+    version: "v1.2.3",
+  });
+
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks", "aceph-prompt-guard.js")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks", "lib", "project-root.js")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "agents", "aceph-orchestrator.toml")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "commands", "aceph", "next.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, INSTALL_META_FILE)));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "project.json")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, "doc", "VERIFY_ENV.md")));
+  assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
+
+  const config = fs.readFileSync(path.join(projectRoot, ".codex", "config.toml"), "utf8");
+  assert.match(config, /codex_hooks = true/);
+  assert.match(config, /\.codex\/hooks\/aceph-prompt-guard\.js/);
+  assert.match(config, new RegExp(escapeForRegExp(projectRoot)));
+  assert.doesNotMatch(config, /event = "Stop"/);
+});
+
+test("uninstallProject removes managed assets and local config block only", () => {
+  const sourceRoot = makeTempDir("aceph-source-");
+  const projectRoot = makeTempDir("aceph-project-");
+  makeSourceTree(sourceRoot);
+  write(path.join(projectRoot, ".codex", "config.toml"), 'model = "gpt-5.4"\n');
+
+  installProject({
+    sourceRoot,
+    projectRoot,
+    version: "v1.2.3",
+  });
+
+  uninstallProject({
+    projectRoot,
+  });
+
+  assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, "doc", "VERIFY_ENV.md")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "agents")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "commands")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "skills")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "hooks", "aceph-prompt-guard.js")), false);
+
+  const config = fs.readFileSync(path.join(projectRoot, ".codex", "config.toml"), "utf8");
+  assert.match(config, /model = "gpt-5.4"/);
+  assert.doesNotMatch(config, /aceph-prompt-guard\.js/);
+  assert.doesNotMatch(config, new RegExp(escapeForRegExp(MANAGED_BLOCK_START)));
+});
+
+test("installProject preserves an existing verify env file", () => {
+  const sourceRoot = makeTempDir("aceph-source-");
+  const projectRoot = makeTempDir("aceph-project-");
+  makeSourceTree(sourceRoot);
+  write(path.join(projectRoot, "doc", "VERIFY_ENV.md"), "custom verify env\n");
+
+  installProject({
+    sourceRoot,
+    projectRoot,
+    version: "v1.2.3",
+  });
+
+  assert.equal(
+    fs.readFileSync(path.join(projectRoot, "doc", "VERIFY_ENV.md"), "utf8"),
+    "custom verify env\n"
+  );
+});
+
+function escapeForRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

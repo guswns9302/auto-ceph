@@ -1,0 +1,72 @@
+# Workflow Reference
+
+## Source of Truth
+
+- `.auto-ceph-work/references/runtime-contract.md`
+- `.auto-ceph-work/references/jira-sync.md`
+- `.auto-ceph-work/references/stage-result-format.md`
+- `doc/<티켓번호>/01_TICKET.md` 부터 `doc/<티켓번호>/07_LOOP.md` 까지의 stage 산출물
+
+## Phase Mapping
+
+| 단계 | Canonical command | Canonical workflow | Canonical agent |
+|---|---|---|
+| 문제 확인 | `.codex/commands/aceph/intake-ticket.md` | `workflows/intake-ticket.md` | `.codex/agents/aceph-ticket-intake.toml` |
+| 문제 검토 | `.codex/commands/aceph/review-ticket.md` | `workflows/review-ticket.md` | `.codex/agents/aceph-ticket-review.toml` |
+| 계획 | `.codex/commands/aceph/plan-ticket.md` | `workflows/plan-ticket.md` | `.codex/agents/aceph-ticket-plan.toml` |
+| 수행 | `.codex/commands/aceph/execute-ticket.md` | `workflows/execute-ticket.md` | `.codex/agents/aceph-ticket-execute.toml` |
+| 검증 | `.codex/commands/aceph/verify-ticket.md` | `workflows/verify-ticket.md` | `.codex/agents/aceph-ticket-verify.toml` |
+| 리뷰 요청 | `.codex/commands/aceph/review-request-ticket.md` | `workflows/review-request-ticket.md` | `.codex/agents/aceph-ticket-review-request.toml` |
+
+## Entry Points
+
+- top-level orchestrator: `.codex/commands/aceph/next.md`
+- stage dispatch target: the `Canonical command` for the detected stage
+- 티켓 자동 선택 대상: 제목에 `[ACW]`가 있고 `repo`가 현재 프로젝트 루트 디렉터리명과 일치하는 Jira `TO DO` 티켓
+- 자동 선택 우선순위: repo 일치 후보 중 `created ASC` 기준으로 가장 오래된 1건
+- 무인자 `$auto-ceph`는 시작 시점의 필터된 티켓 스냅샷을 `created ASC`로 정렬하고, 그 배열을 같은 실행 안에서 순차 처리한다
+
+## State Progression
+
+- 문서가 없으면 `문제 확인`
+- `02_CONTEXT.md`가 확정되지 않았으면 `문제 검토`
+- `03_PLAN.md`가 미완성이면 `계획`
+- `04_EXECUTION.md`가 미완성이면 `수행`
+- `05_UAT.md`가 미완료면 `검증`
+- `06_SUMMARY.md`가 미완료면 `리뷰 요청`
+- `07_LOOP.md`는 반복 제어 이력을 담고 detector의 현재 stage 판정과는 분리한다
+- `07_LOOP.md`의 `retry_pending`은 다음 fallback stage를 같은 실행 안에서 다시 dispatch하기 위한 중간 상태다
+
+## Ralph Loop Policy
+
+- stage 결과가 `blocked`, `failed`, `needs_retry`여도 `terminal_reason`이 입력/설정 오류면 재진입하지 않는다
+- 비재시도 종료 사유는 `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `missing_verify_env_file`, `missing_verify_env_values`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`다
+- 그 외 stage 결과는 오케스트레이터가 같은 실행 안에서 즉시 `fallback_stage`로 재진입한다
+- 같은 loop 안의 stage 전진은 iteration을 올리지 않는다
+- retry 시에는 다음 iteration을 연 뒤 그 iteration의 `fallback_stage`를 같은 실행 안에서 바로 소비한다
+- 자동 반복 상한은 전체 loop attempt 10회다
+- `리뷰 요청` 완료가 자동 루프의 기본 종료 지점이다
+- 이후 새 요구나 피드백은 다음 실행에서 Jira 설명/작업 노트를 우선 읽고 새 iteration을 연다
+- 각 티켓 loop 종료 뒤에는 작업 트리 변경이 있을 경우 티켓 단위 `git commit`을 수행해야 한다
+- push는 현재 checkout 브랜치 upstream을 우선 사용하고, upstream이 없으면 티켓의 `remote`와 현재 티켓 브랜치 `feature/<TICKET-ID>`를 fallback으로 사용한다
+- terminal commit/push는 prepared ticket branch `feature/<TICKET-ID>`에서만 허용한다
+- 각 티켓 terminal 뒤에는 반드시 `dev`로 복귀한 뒤 다음 티켓 또는 종료를 결정한다
+- git 후처리가 실패하면 즉시 종료한다
+
+## Branch Policy
+
+- 실제 작업 브랜치는 항상 `feature/<TICKET-ID>`다
+- 브랜치 준비는 `문제 확인` 단계에서 수행한다
+- branch preparation의 canonical helper는 `.auto-ceph-work/scripts/prepare_ticket_branch.sh`다
+- `계획` 단계는 브랜치를 결정하지 않고 이미 준비된 브랜치를 문서화한다
+
+## Repo Rules
+
+- `remote-ceph-admin`
+  - 계획 단계에서 UI 계획 제외
+  - 검증 단계에서 Playwright 우선
+- API 변경
+  - 검증 단계에서 테스트 우선
+  - 계획 단계에서 `03_PLAN.md`의 `검증용 API 호출 스펙`을 완성
+  - 수행 단계에서 필요하면 `04_EXECUTION.md`의 `검증용 API 호출 실행값`으로 보정
+  - 검증 단계에서 테스트 후 `doc/VERIFY_ENV.md`와 요청 스펙을 사용해 실제 HTTP 응답까지 확인
