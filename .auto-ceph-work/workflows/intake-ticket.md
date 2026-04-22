@@ -6,4 +6,4 @@
 - Extract and validate the minimum required inputs from Jira description: `repo`, `remote`.
 - Create or update `01_TICKET.md` and `02_CONTEXT.md`.
 - Sync Jira to `IN PROGRESS` and `문제 확인`.
-- Return `<stage_result>`.
+- Return a final `<stage_result>` block with all required fields from `stage-result-format.md`.

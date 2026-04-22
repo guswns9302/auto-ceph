@@ -6,4 +6,4 @@
 - Record validation outcome in `05_UAT.md`.
 - If validation fails, return fallback to execution.
 - Sync Jira note to `검증`.
-- Return `<stage_result>`.
+- Return a final `<stage_result>` block with all required fields from `stage-result-format.md`.

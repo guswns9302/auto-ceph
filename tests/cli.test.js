@@ -792,3 +792,82 @@ test("build_stage_prompt includes required result fields for a non-transition st
   assert.match(result.stdout, /fallback_stage: 수행/);
   assert.match(result.stdout, /terminal_reason: none/);
 });
+
+test("auto-ceph contracts treat wait timeouts as non-terminal polling while a subagent is pending", () => {
+  const skill = fs.readFileSync(
+    path.join(__dirname, "..", ".codex", "skills", "auto-ceph", "SKILL.md"),
+    "utf8"
+  );
+  const nextCommand = fs.readFileSync(
+    path.join(__dirname, "..", ".codex", "commands", "aceph", "next.md"),
+    "utf8"
+  );
+  const orchestration = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "workflows", "orchestrate-ticket.md"),
+    "utf8"
+  );
+  const runtimeOrchestration = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "references", "runtime-orchestration.md"),
+    "utf8"
+  );
+
+  assert.match(skill, /spawn 이후 `wait_agent` timeout은 단순 polling 결과다/);
+  assert.match(skill, /pending stage agent가 하나라도 남아 있으면 메인 세션은 `final_answer`로 종료하면 안 된다/);
+  assert.ok(nextCommand.includes("Treat `wait_agent` timeout or an empty `statuses={}` result as a non-terminal polling outcome only."));
+  assert.ok(nextCommand.includes("keep waiting or re-waiting on that same agent id until it reaches a terminal subagent status"));
+  assert.match(orchestration, /If `wait_agent` times out or returns an empty status set, treat that as a non-terminal polling result and continue waiting on the same agent id\./);
+  assert.match(orchestration, /Never emit a terminal answer while any spawned stage agent is still pending or running\./);
+  assert.match(runtimeOrchestration, /`wait_agent` timeout 또는 빈 status는 agent 중단이 아니라 polling 결과로만 본다/);
+  assert.match(runtimeOrchestration, /pending\/running stage agent가 남아 있으면 메인 세션은 종료할 수 없고, 같은 agent id를 계속 기다려야 한다/);
+});
+
+test("runtime-orchestration stage result example matches the required complete field set", () => {
+  const runtimeOrchestration = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "references", "runtime-orchestration.md"),
+    "utf8"
+  );
+
+  assert.match(runtimeOrchestration, /agent_binding: aceph-ticket-plan/);
+  assert.match(runtimeOrchestration, /jira_stage_note_started: yes/);
+  assert.match(runtimeOrchestration, /jira_stage_summary_written: yes/);
+  assert.match(runtimeOrchestration, /jira_status_transition_applied: unchanged/);
+  assert.match(runtimeOrchestration, /jira_updates_applied: description_work_note_start=계획, description_work_note_summary=03_PLAN\.md 계획 요약 반영/);
+  assert.match(runtimeOrchestration, /iteration: 1/);
+  assert.match(runtimeOrchestration, /loop_decision: advance/);
+  assert.match(runtimeOrchestration, /detected_stage_after_run: 수행/);
+  assert.match(runtimeOrchestration, /terminal_reason: none/);
+});
+
+test("build_stage_prompt example uses field-complete jira_updates_applied wording", () => {
+  const promptBuilder = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "build_stage_prompt.sh"),
+    "utf8"
+  );
+
+  assert.match(promptBuilder, /jira_stage_note_started: yes/);
+  assert.match(promptBuilder, /jira_stage_summary_written: yes/);
+  assert.match(promptBuilder, /jira_status_transition_applied: unchanged/);
+  assert.match(promptBuilder, /jira_updates_applied: description_work_note_start=\$stage_note, description_work_note_summary=\$stage_artifact updated/);
+  assert.doesNotMatch(promptBuilder, /jira_updates_applied: note=/);
+});
+
+test("stage workflows require required-field-complete stage results", () => {
+  const workflowFiles = [
+    "intake-ticket.md",
+    "review-ticket.md",
+    "plan-ticket.md",
+    "execute-ticket.md",
+    "verify-ticket.md",
+    "code-review-ticket.md",
+    "review-request-ticket.md",
+  ];
+
+  for (const fileName of workflowFiles) {
+    const contents = fs.readFileSync(
+      path.join(__dirname, "..", ".auto-ceph-work", "workflows", fileName),
+      "utf8"
+    );
+    assert.match(contents, /Return a final `<stage_result>` block with all required fields from `stage-result-format\.md`\./);
+    assert.doesNotMatch(contents, /- Return `<stage_result>`\./);
+  }
+});

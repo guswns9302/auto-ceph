@@ -4,4 +4,4 @@
 - Inspect the current ticket branch changes and diff for code quality risks.
 - Record findings, decision, and retry reason in `06_REVIEW.md`.
 - Sync Jira note to `코드 리뷰`.
-- Return `<stage_result>`.
+- Return a final `<stage_result>` block with all required fields from `stage-result-format.md`.

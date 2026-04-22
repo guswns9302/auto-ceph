@@ -204,7 +204,7 @@ artifacts_updated: $stage_artifact
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
 jira_status_transition_applied: unchanged
-jira_updates_applied: note=$stage_note
+jira_updates_applied: description_work_note_start=$stage_note, description_work_note_summary=$stage_artifact updated
 next_stage: $next_stage
 fallback_stage: $fallback_stage
 iteration: ${run_iteration:-1}

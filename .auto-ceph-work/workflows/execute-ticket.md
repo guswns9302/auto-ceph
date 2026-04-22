@@ -5,4 +5,4 @@
 - Implement the planned changes.
 - Record commands, files, and issues in `04_EXECUTION.md`.
 - Sync Jira note to `수행`.
-- Return `<stage_result>`.
+- Return a final `<stage_result>` block with all required fields from `stage-result-format.md`.

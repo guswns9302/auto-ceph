@@ -31,6 +31,8 @@ Ticket ID: optional in `$ARGUMENTS`
 - Resolve the current loop state with `.auto-ceph-work/scripts/resolve_loop_state.sh`.
 - For each iteration step, build the stage prompt from the canonical stage command, workflow, and agent spec, then spawn the matching stage agent directly from the main session.
 - Spawn stage agents without forking parent-thread chat context. The stage prompt must carry the full required handoff.
+- Treat `wait_agent` timeout or an empty `statuses={}` result as a non-terminal polling outcome only.
+- If a spawned stage agent is still pending or running, do not emit `final_answer`, do not mark the run complete, and keep tracking the same agent until a terminal subagent status arrives.
 - Treat `retry_pending` as a non-terminal intermediate state and immediately consume it by spawning `fallback_stage` again in this same execution when the failure is retryable and the loop limit allows it.
 - After a ticket reaches a terminal state, if the worktree changed, create a terminal ticket commit only on the prepared ticket branch and push it using the current branch upstream first, then ticket `remote` + current ticket branch `feature/<TICKET-ID>` as fallback.
 - After each terminal ticket, always return to `dev` before selecting or starting the next ticket.
@@ -45,6 +47,7 @@ Ticket ID: optional in `$ARGUMENTS`
 Execute the ticket orchestration workflow from @.auto-ceph-work/workflows/orchestrate-ticket.md end-to-end.
 Use the stage-to-command mapping defined in @.auto-ceph-work/references/workflow.md to select the canonical stage contract and canonical stage agent.
 If the host runtime cannot spawn the selected stage agent directly from the main session, stop immediately and report a stage-agent spawn failure instead of continuing inline.
+After spawning a stage agent, keep waiting or re-waiting on that same agent id until it reaches a terminal subagent status. A `wait_agent` timeout is not a stage result and not a stop condition.
 Reject any stage result that is missing Jira start-note or Jira summary-note evidence.
 Reject any stage result that is missing the required Jira status transition evidence for that stage.
 Reject any stage result that omits `agent_binding`, `iteration`, `loop_decision`, `detected_stage_after_run`, or `terminal_reason`.

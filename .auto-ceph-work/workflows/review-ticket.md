@@ -4,4 +4,4 @@
 - Fix mismatches or return fallback to intake.
 - Lock implementation scope and verification points.
 - Sync Jira note to `문제 검토`.
-- Return `<stage_result>`.
+- Return a final `<stage_result>` block with all required fields from `stage-result-format.md`.

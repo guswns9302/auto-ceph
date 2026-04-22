@@ -6,4 +6,4 @@
 - Apply repo-specific rules such as `remote-ceph-admin`.
 - Write `03_PLAN.md`.
 - Sync Jira note to `계획`.
-- Return `<stage_result>`.
+- Return a final `<stage_result>` block with all required fields from `stage-result-format.md`.
