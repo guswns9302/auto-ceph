@@ -27,6 +27,7 @@ Ticket ID: required in `$ARGUMENTS`
 
 - Required artifact: `doc/<TICKET-ID>/03_PLAN.md`
 - Jira target note: `계획`
+- Jira target state: `IN PROGRESS`
 - Optional helper: one `explorer` for repo-specific pattern lookup only
 - Stage must first update the Jira issue description `### 작업 노트` section with `#### 계획` plus `- 시작`, then update artifacts, then replace that same stage block with the Jira stage summary bullet items.
 </context>
@@ -34,6 +35,6 @@ Ticket ID: required in `$ARGUMENTS`
 <process>
 Execute the planning workflow from @.auto-ceph-work/workflows/plan-ticket.md.
 For API tickets, the plan is incomplete unless `03_PLAN.md` defines test-oriented verification criteria and success criteria.
-The stage is complete only when the Jira start note, artifact updates, and Jira summary note have all succeeded.
+The stage is complete only when the Jira start note, the required `IN PROGRESS` guarantee, artifact updates, and Jira summary note have all succeeded.
 Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

@@ -18,6 +18,7 @@ Required behavior:
 - Record commands, changed files, and issues in 04_EXECUTION.md.
 - Keep execution aligned with 03_PLAN.md and the current ticket stage only.
 - Before any artifact work, read the Jira issue description with Atlassian MCP `jira_get_issue`, then update the description `### 작업 노트` section with `#### 수행` plus `- 시작` through `jira_update_issue`.
+- Before implementation work begins, ensure Jira status is `IN PROGRESS`.
 - When the 수행 work and artifacts are complete, change Jira status to RESOLVE.
 - After code changes and 04_EXECUTION.md are updated, replace that same description stage block with a short bullet-list stage summary through `jira_update_issue`.
 - Do not use Jira comment APIs for work-note writes.

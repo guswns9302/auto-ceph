@@ -3,17 +3,24 @@
 ## Status Flow
 
 - 시작: `TO DO`
-- 문제 확인 단계 시작 또는 완료 시: `IN PROGRESS`
-- 수행 단계 완료 시: `RESOLVE`
-- 검증 단계 시작 시: `REVIEW`
+- 문제 확인: `IN PROGRESS`
+- 문제 검토: `IN PROGRESS`
+- 계획: `IN PROGRESS`
+- 수행 시작: `IN PROGRESS`
+- 수행 완료: `RESOLVE`
+- 검증: `RESOLVE`
+- 코드 리뷰: `RESOLVE`
+- 리뷰 요청: `REVIEW`
 
 ## Status Transition Rules
 
 - Jira 상태 전이는 `작업 노트` 갱신과 별개다.
-- `문제 확인` 단계는 티켓이 `TO DO`에서 출발한다고 가정하고 `IN PROGRESS`로 전이한다.
-- `수행` 단계는 구현과 산출물 갱신이 끝난 시점에 `RESOLVE`로 전이한다.
-- `검증` 단계는 검증 작업을 시작하기 전에 `REVIEW`로 전이한다.
-- `문제 검토`, `계획`, `코드 리뷰`, `리뷰 요청` 단계는 기본적으로 Jira 상태를 변경하지 않는다.
+- 모든 stage는 자신의 목표 Jira 상태를 직접 보장해야 한다.
+- `문제 확인`, `문제 검토`, `계획` 단계는 시작 시 `IN PROGRESS`를 보장한다.
+- `수행` 단계는 시작 시 `IN PROGRESS`를 보장하고, 구현과 산출물 갱신이 끝난 시점에 `RESOLVE`로 전이한다.
+- `검증`, `코드 리뷰` 단계는 시작 시 `RESOLVE`를 보장한다.
+- `리뷰 요청` 단계는 시작 시 `REVIEW`를 보장한다.
+- 이미 목표 상태라면 no-op로 처리할 수 있지만, stage result에는 `jira_status_transition_applied: unchanged`로 남겨야 한다.
 - 요구된 상태 전이가 실패하면 해당 stage는 완료가 아니다.
 
 ## Work Note Values

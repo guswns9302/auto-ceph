@@ -4,7 +4,7 @@
 
 - 단계: 검증
 - 상태: Waiting
-- Jira 상태: REVIEW
+- Jira 상태: RESOLVE
 
 ## 실행 결과
 

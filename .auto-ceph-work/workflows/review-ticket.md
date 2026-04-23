@@ -4,5 +4,6 @@
 - Fix mismatches or return fallback to intake.
 - Lock implementation scope and verification points.
 - In `02_CONTEXT.md`, record that minimal verification-unblock fixes are allowed only when they directly unblock the current ticket validation.
+- Ensure Jira status is `IN PROGRESS`.
 - Sync Jira note to `문제 검토`.
 - Return a final `<stage_result>` block with all required fields from `stage-result-format.md`.

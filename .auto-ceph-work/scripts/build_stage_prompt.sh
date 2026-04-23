@@ -24,6 +24,9 @@ next_stage=""
 fallback_stage=""
 agent_role="worker"
 extra_rules=""
+stage_target_state=""
+stage_transition_timing=""
+stage_result_transition="unchanged"
 
 case "$STAGE" in
   "문제 확인")
@@ -32,6 +35,9 @@ case "$STAGE" in
     stage_note="문제 확인"
     next_stage="문제 검토"
     fallback_stage="문제 확인"
+    stage_target_state="IN PROGRESS"
+    stage_transition_timing="문제 확인 stage에서 보장"
+    stage_result_transition="IN PROGRESS"
     ;;
   "문제 검토")
     stage_command='aceph:review-ticket'
@@ -39,6 +45,8 @@ case "$STAGE" in
     stage_note="문제 검토"
     next_stage="계획"
     fallback_stage="문제 확인"
+    stage_target_state="IN PROGRESS"
+    stage_transition_timing="문제 검토 stage에서 보장"
     ;;
   "계획")
     stage_command='aceph:plan-ticket'
@@ -46,6 +54,8 @@ case "$STAGE" in
     stage_note="계획"
     next_stage="수행"
     fallback_stage="문제 검토"
+    stage_target_state="IN PROGRESS"
+    stage_transition_timing="계획 stage에서 보장"
     if [ "${repo:-}" = "remote-ceph-admin" ]; then
       extra_rules="repo 특례: remote-ceph-admin 이므로 UI 관련 계획을 포함하지 마라."
     fi
@@ -56,6 +66,9 @@ case "$STAGE" in
     stage_note="수행"
     next_stage="검증"
     fallback_stage="계획"
+    stage_target_state="IN PROGRESS -> RESOLVE"
+    stage_transition_timing="시작 시 IN PROGRESS, 완료 시 RESOLVE"
+    stage_result_transition="RESOLVE"
     ;;
   "검증")
     stage_command='aceph:verify-ticket'
@@ -63,6 +76,9 @@ case "$STAGE" in
     stage_note="검증"
     next_stage="코드 리뷰"
     fallback_stage="수행"
+    stage_target_state="RESOLVE"
+    stage_transition_timing="검증 stage에서 보장"
+    stage_result_transition="RESOLVE"
     if [ "${repo:-}" = "remote-ceph-admin" ]; then
       extra_rules="repo 특례: remote-ceph-admin 이므로 Playwright 검증을 우선 사용하라."
     fi
@@ -73,6 +89,9 @@ case "$STAGE" in
     stage_note="코드 리뷰"
     next_stage="리뷰 요청"
     fallback_stage="수행"
+    stage_target_state="RESOLVE"
+    stage_transition_timing="코드 리뷰 stage에서 보장"
+    stage_result_transition="RESOLVE"
     extra_rules="코드 리뷰는 테스트 재실행 단계가 아니라 변경 코드와 diff의 품질, 리스크, 테스트 충분성을 검토하는 단계다."
     ;;
   "리뷰 요청")
@@ -81,6 +100,9 @@ case "$STAGE" in
     stage_note="리뷰 요청"
     next_stage="완료"
     fallback_stage="코드 리뷰"
+    stage_target_state="REVIEW"
+    stage_transition_timing="리뷰 요청 stage에서 보장"
+    stage_result_transition="REVIEW"
     ;;
   *)
     echo "unknown stage: $STAGE" >&2
@@ -173,6 +195,8 @@ Ticket context:
 Current stage: $STAGE
 Required artifact(s): $stage_artifact
 Jira note target: $stage_note
+Jira target state: $stage_target_state
+Jira state transition timing: $stage_transition_timing
 Expected next stage: $next_stage
 Fallback stage on failure: $fallback_stage
 Ralph loop current iteration: ${run_iteration:-1}
@@ -188,7 +212,7 @@ Mandatory behavior:
 - Prepare the actual work branch as ${ticket_branch:-unknown} from ${base_branch:-unknown} during intake.
 - Update the artifact(s) for the current stage directly.
 - Keep $loop_file aligned with the current iteration if this stage run contributes to a Ralph loop pass.
-- Apply Jira status and 작업 노트 updates directly when the stage contract requires it.
+- Apply the stage target Jira status and 작업 노트 updates directly when the stage contract requires it.
 - If Jira update fails, do not report success.
 - If you change code or docs, keep them aligned with the current stage only.
 - For verification work, prioritize automated tests and artifact review; do not require a real HTTP call.
@@ -204,7 +228,7 @@ agent_binding: $(basename "$runtime_agent_file" .toml)
 artifacts_updated: $stage_artifact
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
-jira_status_transition_applied: unchanged
+jira_status_transition_applied: $stage_result_transition
 jira_updates_applied: description_work_note_start=$stage_note, description_work_note_summary=$stage_artifact updated
 next_stage: $next_stage
 fallback_stage: $fallback_stage

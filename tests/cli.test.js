@@ -765,7 +765,7 @@ test("build_stage_prompt includes current project repo for intake matching", () 
   assert.match(result.stdout, /retry_reason: none/);
   assert.match(result.stdout, /jira_stage_note_started: yes/);
   assert.match(result.stdout, /jira_stage_summary_written: yes/);
-  assert.match(result.stdout, /jira_status_transition_applied: unchanged/);
+  assert.match(result.stdout, /jira_status_transition_applied: IN PROGRESS/);
   assert.match(result.stdout, /loop_decision: advance/);
   assert.match(result.stdout, /terminal_reason: none/);
   assert.match(result.stdout, /Do not rely on parent-thread chat context/);
@@ -802,7 +802,7 @@ test("build_stage_prompt includes required result fields for a non-transition st
   assert.match(result.stdout, /retry_reason: none/);
   assert.match(result.stdout, /jira_stage_note_started: yes/);
   assert.match(result.stdout, /jira_stage_summary_written: yes/);
-  assert.match(result.stdout, /jira_status_transition_applied: unchanged/);
+  assert.match(result.stdout, /jira_status_transition_applied: RESOLVE/);
   assert.match(result.stdout, /fallback_stage: 수행/);
   assert.match(result.stdout, /terminal_reason: none/);
 });
@@ -845,7 +845,7 @@ test("runtime-orchestration stage result example matches the required complete f
   assert.match(runtimeOrchestration, /retry_reason: none/);
   assert.match(runtimeOrchestration, /jira_stage_note_started: yes/);
   assert.match(runtimeOrchestration, /jira_stage_summary_written: yes/);
-  assert.match(runtimeOrchestration, /jira_status_transition_applied: unchanged/);
+  assert.match(runtimeOrchestration, /jira_status_transition_applied: IN PROGRESS/);
   assert.match(runtimeOrchestration, /jira_updates_applied: description_work_note_start=계획, description_work_note_summary=03_PLAN\.md 계획 요약 반영/);
   assert.match(runtimeOrchestration, /iteration: 1/);
   assert.match(runtimeOrchestration, /loop_decision: advance/);
@@ -861,7 +861,7 @@ test("build_stage_prompt example uses field-complete jira_updates_applied wordin
 
   assert.match(promptBuilder, /jira_stage_note_started: yes/);
   assert.match(promptBuilder, /jira_stage_summary_written: yes/);
-  assert.match(promptBuilder, /jira_status_transition_applied: unchanged/);
+  assert.match(promptBuilder, /jira_status_transition_applied: \$stage_result_transition/);
   assert.match(promptBuilder, /jira_updates_applied: description_work_note_start=\$stage_note, description_work_note_summary=\$stage_artifact updated/);
   assert.match(promptBuilder, /retry_reason: none/);
   assert.doesNotMatch(promptBuilder, /jira_updates_applied: note=/);
@@ -945,6 +945,99 @@ test("auto-ceph contracts no longer treat needs_retry as a terminal git status",
   assert.doesNotMatch(runtimeOrchestration, /`needs_retry`: `chore\(auto-ceph\): stop <TICKET-ID>`/);
   assert.match(runtimeOrchestration, /`needs_retry` 자체로는 terminal git 후처리를 열지 않는다/);
   assert.match(runtimeContract, /`needs_retry`는 terminal 상태가 아니므로 그 자체로는 티켓 단위 commit\/push 대상이 아니다/);
+});
+
+test("jira status contracts pin each stage to an explicit target state", () => {
+  const jiraSync = readRepoFile(path.join(".auto-ceph-work", "references", "jira-sync.md"));
+  const runtimeContract = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-contract.md"));
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
+  const codeReviewCommand = readRepoFile(path.join(".codex", "commands", "aceph", "code-review-ticket.md"));
+  const reviewRequestCommand = readRepoFile(path.join(".codex", "commands", "aceph", "review-request-ticket.md"));
+
+  assert.match(jiraSync, /문제 검토: `IN PROGRESS`/);
+  assert.match(jiraSync, /계획: `IN PROGRESS`/);
+  assert.match(jiraSync, /검증: `RESOLVE`/);
+  assert.match(jiraSync, /코드 리뷰: `RESOLVE`/);
+  assert.match(jiraSync, /리뷰 요청: `REVIEW`/);
+  assert.match(runtimeContract, /검증 -> RESOLVE/);
+  assert.match(runtimeContract, /코드 리뷰 -> RESOLVE/);
+  assert.match(runtimeContract, /리뷰 요청 -> REVIEW/);
+  assert.match(skill, /`검증`\/`코드 리뷰`는 `RESOLVE`, `리뷰 요청`은 `REVIEW`/);
+  assert.match(codeReviewCommand, /Jira target state: `RESOLVE`/);
+  assert.match(reviewRequestCommand, /Jira target state: `REVIEW`/);
+});
+
+test("build_stage_prompt reflects stage-specific jira target states", () => {
+  const rootDir = makeTempDir("aceph-prompt-status-root-");
+  write(path.join(rootDir, "doc", "CDS-3000", "01_TICKET.md"), "# TICKET\n- repo: ceph-service-api\n- remote: origin\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: done\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"), "# UAT\n- 최종 판단: ok\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "06_REVIEW.md"), "# REVIEW\n- 결과: pending\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 1\n- 최대 iteration: 10\n- 현재 loop 상태: in_progress\n- 현재 stage: 코드 리뷰\n- 마지막 결과 상태: passed\n- 마지막 loop 결정: advance\n- 마지막 fallback 단계: 수행\n- 마지막 종료 사유: none\n\n## Iteration History\n");
+  write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
+    version: 1,
+    workflow: "auto-ceph-ticket-loop",
+    docs_root: "doc",
+    ticket_root_pattern: "doc/<TICKET-ID>",
+  }, null, 2));
+  for (const rel of [
+    ".auto-ceph-work/scripts/build_stage_prompt.sh",
+    ".auto-ceph-work/scripts/resolve_ticket_context.sh",
+    ".auto-ceph-work/scripts/resolve_loop_state.sh",
+  ]) {
+    write(path.join(rootDir, rel), readRepoFile(rel));
+  }
+
+  let result = runScript(path.join(rootDir, ".auto-ceph-work", "scripts", "build_stage_prompt.sh"), ["코드 리뷰", "CDS-3000"], rootDir);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Jira target state: RESOLVE/);
+  assert.match(result.stdout, /jira_status_transition_applied: RESOLVE/);
+
+  result = runScript(path.join(rootDir, ".auto-ceph-work", "scripts", "build_stage_prompt.sh"), ["리뷰 요청", "CDS-3000"], rootDir);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Jira target state: REVIEW/);
+  assert.match(result.stdout, /jira_status_transition_applied: REVIEW/);
+});
+
+test("workflow guard warns when stage-specific jira status metadata drifts", () => {
+  const rootDir = makeTempDir("aceph-hook-root-");
+  write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
+    version: 1,
+    workflow: "auto-ceph-ticket-loop",
+    docs_root: "doc",
+    ticket_root_pattern: "doc/<TICKET-ID>",
+  }, null, 2));
+  for (const rel of [
+    ".auto-ceph-work/hooks/aceph-workflow-guard.js",
+    ".auto-ceph-work/hooks/lib/project-root.js",
+    ".auto-ceph-work/scripts/detect_ticket_stage.sh",
+  ]) {
+    write(path.join(rootDir, rel), readRepoFile(rel));
+  }
+  write(path.join(rootDir, "doc", "CDS-3000", "01_TICKET.md"), "# TICKET\n- repo: aceph-hook-root-x\n- remote: origin\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: ok\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n\n## 메타 정보\n\n- 단계: 수행\n- 상태: Waiting\n- Jira 상태: IN PROGRESS\n\n- 수행 내용: done\n");
+  write(path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"), "# UAT\n\n## 메타 정보\n\n- 단계: 검증\n- 상태: Waiting\n- Jira 상태: REVIEW\n\n- 최종 판단: ok\n");
+
+  const payload = {
+    tool_name: "Edit",
+    cwd: rootDir,
+    tool_input: {
+      file_path: path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"),
+      new_string: "- 결과: updated",
+    },
+  };
+  const result = spawnSync("node", [path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js")], {
+    cwd: rootDir,
+    input: JSON.stringify(payload),
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /expects Jira status RESOLVE, but 05_UAT\.md declares REVIEW/);
 });
 
 test("review and plan templates include verification-unblock scope guardrails", () => {

@@ -26,12 +26,12 @@ Ticket ID: required in `$ARGUMENTS`
 
 - Required artifact: `doc/<TICKET-ID>/07_SUMMARY.md`
 - Jira target note: `리뷰 요청`
-- Jira target state: unchanged
+- Jira target state: `REVIEW`
 - Stage must first update the Jira issue description `### 작업 노트` section with `#### 리뷰 요청` plus `- 시작`, then update artifacts, then replace that same stage block with the Jira stage summary bullet items.
 </context>
 
 <process>
 Execute the review-request workflow from @.auto-ceph-work/workflows/review-request-ticket.md.
-The stage is complete only when the Jira start note, artifact updates, and Jira summary note have all succeeded.
+The stage is complete only when the Jira start note, the required `REVIEW` guarantee, artifact updates, and Jira summary note have all succeeded.
 Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

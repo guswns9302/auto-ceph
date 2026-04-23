@@ -73,6 +73,14 @@
 - stage 시작 기록과 stage 요약 기록은 같은 stage 블록 안에서 누적/교체한다.
 - 다른 description 섹션(`프로젝트`, `문제점`, `개선 방향`)은 보존해야 한다.
 
+## Jira Status Policy
+
+- `문제 확인`, `문제 검토`, `계획`은 `IN PROGRESS`
+- `수행`은 시작 시 `IN PROGRESS`, 완료 시 `RESOLVE`
+- `검증`, `코드 리뷰`는 `RESOLVE`
+- `리뷰 요청`은 `REVIEW`
+- hook는 상태를 바꾸지 않고 advisory-only로 감시만 한다.
+
 ## Installation
 
 - 이 저장소는 npm 패키지로 배포하고, 대상 프로젝트에서는 `npx @eddy_yun/auto-ceph-work install`로 설치한다.

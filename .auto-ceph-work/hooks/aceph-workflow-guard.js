@@ -71,6 +71,42 @@ function detectStage(project, ticketId) {
   }
 }
 
+const EXPECTED_STAGE_JIRA_STATUS = {
+  "문제 확인": "IN PROGRESS",
+  "문제 검토": "IN PROGRESS",
+  "계획": "IN PROGRESS",
+  "수행": "IN PROGRESS",
+  "검증": "RESOLVE",
+  "코드 리뷰": "RESOLVE",
+  "리뷰 요청": "REVIEW",
+};
+
+function expectedJiraStatusForStage(stage) {
+  return EXPECTED_STAGE_JIRA_STATUS[stage] || null;
+}
+
+function readDeclaredJiraStatus(project, ticketId, fileName) {
+  if (!ticketId || !fileName) {
+    return null;
+  }
+  const filePath = path.join(project.rootDir, project.config.docs_root, ticketId, fileName);
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+  try {
+    const text = fs.readFileSync(filePath, "utf8");
+    const match = text.match(/^- Jira 상태:\s*(.+)$/m);
+    return match ? match[1].trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function fileNameForTarget(relativePath) {
+  const parts = relativePath.split("/");
+  return parts[parts.length - 1] || null;
+}
+
 function fileExists(project, ticketId, fileName) {
   if (!ticketId) {
     return false;
@@ -123,6 +159,14 @@ function classifyReason(project, target, ticketId, stage) {
 
   if (ticketId && target.relative.endsWith("/04_EXECUTION.md") && !fileExists(project, ticketId, "03_PLAN.md")) {
     return "04_EXECUTION.md should not be advanced before 03_PLAN.md exists.";
+  }
+
+  if (ticketId && stage) {
+    const expectedStatus = expectedJiraStatusForStage(stage);
+    const declaredStatus = readDeclaredJiraStatus(project, ticketId, fileNameForTarget(target.relative));
+    if (expectedStatus && declaredStatus && expectedStatus !== declaredStatus) {
+      return `Detected stage ${stage} expects Jira status ${expectedStatus}, but ${path.basename(target.relative)} declares ${declaredStatus}.`;
+    }
   }
 
   return null;

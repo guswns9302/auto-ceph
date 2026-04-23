@@ -90,7 +90,7 @@ agent_binding: aceph-ticket-plan
 artifacts_updated: doc/CDS-1234/03_PLAN.md
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
-jira_status_transition_applied: unchanged
+jira_status_transition_applied: IN PROGRESS
 jira_updates_applied: description_work_note_start=계획, description_work_note_summary=03_PLAN.md 계획 요약 반영
 next_stage: 수행
 fallback_stage: 문제 검토
@@ -101,3 +101,13 @@ terminal_reason: none
 summary: git 준비 절차와 구현 task를 계획서에 고정했다.
 </stage_result>
 ```
+
+stage별 목표 Jira 상태는 아래와 같이 고정한다.
+
+- `문제 확인` -> `IN PROGRESS`
+- `문제 검토` -> `IN PROGRESS`
+- `계획` -> `IN PROGRESS`
+- `수행` -> 시작 시 `IN PROGRESS`, 완료 시 `RESOLVE`
+- `검증` -> `RESOLVE`
+- `코드 리뷰` -> `RESOLVE`
+- `리뷰 요청` -> `REVIEW`
