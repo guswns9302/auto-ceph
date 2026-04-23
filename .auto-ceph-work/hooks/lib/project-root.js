@@ -9,8 +9,8 @@ const PROJECT_CONFIG_FILE = "project.json";
 const DEFAULT_CONFIG = {
   version: 1,
   workflow: "auto-ceph-ticket-loop",
-  docs_root: "doc",
-  ticket_root_pattern: "doc/<TICKET-ID>",
+  docs_root: ".auto-ceph-work/tickets",
+  ticket_root_pattern: ".auto-ceph-work/tickets/<TICKET-ID>",
 };
 
 function readJson(filePath) {

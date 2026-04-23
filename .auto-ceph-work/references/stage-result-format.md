@@ -9,7 +9,7 @@ ticket_id: CDS-1234
 status: passed
 retry_reason: none
 agent_binding: aceph-ticket-intake
-artifacts_updated: doc/CDS-1234/01_TICKET.md, doc/CDS-1234/02_CONTEXT.md
+artifacts_updated: .auto-ceph-work/tickets/CDS-1234/01_TICKET.md, .auto-ceph-work/tickets/CDS-1234/02_CONTEXT.md
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
 jira_status_transition_applied: IN PROGRESS

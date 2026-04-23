@@ -24,7 +24,7 @@ Review the ticket source and generated docs to produce a reliable implementation
 <context>
 Ticket ID: required in `$ARGUMENTS`
 
-- Required artifact: `doc/<TICKET-ID>/02_CONTEXT.md`
+- Required artifact: `.auto-ceph-work/tickets/<TICKET-ID>/02_CONTEXT.md`
 - Jira target note: `문제 검토`
 - Jira target state: `IN PROGRESS`
 - Fallback stage on mismatch: `문제 확인`

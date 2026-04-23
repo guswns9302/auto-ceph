@@ -25,7 +25,7 @@ Verify the implemented ticket work and capture a clear validation result in `05_
 <context>
 Ticket ID: required in `$ARGUMENTS`
 
-- Required artifact: `doc/<TICKET-ID>/05_UAT.md`
+- Required artifact: `.auto-ceph-work/tickets/<TICKET-ID>/05_UAT.md`
 - Jira target note: `검증`
 - Jira target state: `RESOLVE`
 - Jira state transition timing: 검증 시작 시

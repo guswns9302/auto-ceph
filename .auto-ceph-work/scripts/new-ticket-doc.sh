@@ -8,7 +8,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TICKET_ID="$1"
-TARGET_DIR="$ROOT_DIR/doc/$TICKET_ID"
+TARGET_DIR="$ROOT_DIR/.auto-ceph-work/tickets/$TICKET_ID"
 TEMPLATE_DIR="$ROOT_DIR/.auto-ceph-work/templates"
 
 if [ -d "$TARGET_DIR" ]; then

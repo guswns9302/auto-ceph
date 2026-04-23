@@ -25,7 +25,7 @@ Turn the reviewed ticket context into an executable `03_PLAN.md`, including veri
 <context>
 Ticket ID: required in `$ARGUMENTS`
 
-- Required artifact: `doc/<TICKET-ID>/03_PLAN.md`
+- Required artifact: `.auto-ceph-work/tickets/<TICKET-ID>/03_PLAN.md`
 - Jira target note: `계획`
 - Jira target state: `IN PROGRESS`
 - Optional helper: one `explorer` for repo-specific pattern lookup only

@@ -8,7 +8,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TICKET_ID="$1"
-LOOP_FILE="$ROOT_DIR/doc/$TICKET_ID/08_LOOP.md"
+LOOP_FILE="$ROOT_DIR/.auto-ceph-work/tickets/$TICKET_ID/08_LOOP.md"
 DEFAULT_LOOP_LIMIT=10
 NON_RETRYABLE_REASONS="missing_title_prefix missing_required_inputs repo_mismatch ticket_branch_not_prepared post_ticket_branch_mismatch"
 

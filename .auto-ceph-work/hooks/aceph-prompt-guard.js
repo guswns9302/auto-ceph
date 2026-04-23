@@ -25,7 +25,7 @@ const INJECTION_PATTERNS = [
 ];
 
 const TARGET_PREFIXES = [
-  "doc/",
+  ".auto-ceph-work/tickets/",
   ".codex/skills/auto-ceph/",
   ".auto-ceph-work/workflows/",
   ".auto-ceph-work/references/",

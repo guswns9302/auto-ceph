@@ -24,7 +24,7 @@ Create or refresh the intake-stage artifacts for a Jira ticket.
 <context>
 Ticket ID: required in `$ARGUMENTS`
 
-- Required artifacts: `doc/<TICKET-ID>/01_TICKET.md`, `doc/<TICKET-ID>/02_CONTEXT.md`
+- Required artifacts: `.auto-ceph-work/tickets/<TICKET-ID>/01_TICKET.md`, `.auto-ceph-work/tickets/<TICKET-ID>/02_CONTEXT.md`
 - Jira target state: `IN PROGRESS`
 - Jira target note: `문제 확인`
 - Jira state transition timing: 문제 확인 단계에서 `IN PROGRESS`

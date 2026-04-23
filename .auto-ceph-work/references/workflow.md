@@ -5,7 +5,7 @@
 - `.auto-ceph-work/references/runtime-contract.md`
 - `.auto-ceph-work/references/jira-sync.md`
 - `.auto-ceph-work/references/stage-result-format.md`
-- `doc/<티켓번호>/01_TICKET.md` 부터 `doc/<티켓번호>/08_LOOP.md` 까지의 stage 산출물
+- `.auto-ceph-work/tickets/<티켓번호>/01_TICKET.md` 부터 `.auto-ceph-work/tickets/<티켓번호>/08_LOOP.md` 까지의 stage 산출물
 
 ## Phase Mapping
 

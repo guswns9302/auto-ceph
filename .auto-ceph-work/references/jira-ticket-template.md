@@ -71,10 +71,10 @@ Jira description 어디에 있든 아래 2개가 추출 가능해야 한다.
 
 ## 문서 매핑
 
-- Jira 원문 구조 보존: `doc/<티켓번호>/01_TICKET.md`
-- 문제 해석과 범위 고정: `doc/<티켓번호>/02_CONTEXT.md`
-- 구현 계획: `doc/<티켓번호>/03_PLAN.md`
-- 실행 로그: `doc/<티켓번호>/04_EXECUTION.md`
-- 검증 결과: `doc/<티켓번호>/05_UAT.md`
-- 코드 리뷰 결과: `doc/<티켓번호>/06_REVIEW.md`
-- 리뷰 요청 요약: `doc/<티켓번호>/07_SUMMARY.md`
+- Jira 원문 구조 보존: `.auto-ceph-work/tickets/<티켓번호>/01_TICKET.md`
+- 문제 해석과 범위 고정: `.auto-ceph-work/tickets/<티켓번호>/02_CONTEXT.md`
+- 구현 계획: `.auto-ceph-work/tickets/<티켓번호>/03_PLAN.md`
+- 실행 로그: `.auto-ceph-work/tickets/<티켓번호>/04_EXECUTION.md`
+- 검증 결과: `.auto-ceph-work/tickets/<티켓번호>/05_UAT.md`
+- 코드 리뷰 결과: `.auto-ceph-work/tickets/<티켓번호>/06_REVIEW.md`
+- 리뷰 요청 요약: `.auto-ceph-work/tickets/<티켓번호>/07_SUMMARY.md`

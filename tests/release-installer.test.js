@@ -30,8 +30,8 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
     version: 1,
     workflow: "auto-ceph-ticket-loop",
-    docs_root: "doc",
-    ticket_root_pattern: "doc/<TICKET-ID>",
+    docs_root: ".auto-ceph-work/tickets",
+    ticket_root_pattern: ".auto-ceph-work/tickets/<TICKET-ID>",
   }, null, 2));
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");

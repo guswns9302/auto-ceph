@@ -87,7 +87,7 @@ ticket_id: CDS-1234
 status: passed
 retry_reason: none
 agent_binding: aceph-ticket-plan
-artifacts_updated: doc/CDS-1234/03_PLAN.md
+artifacts_updated: .auto-ceph-work/tickets/CDS-1234/03_PLAN.md
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
 jira_status_transition_applied: IN PROGRESS

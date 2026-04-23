@@ -20,12 +20,16 @@ function write(filePath, content) {
   fs.writeFileSync(filePath, content);
 }
 
+function ticketPath(rootDir, ticketId, ...parts) {
+  return path.join(rootDir, ".auto-ceph-work", "tickets", ticketId, ...parts);
+}
+
 function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
     version: 1,
     workflow: "auto-ceph-ticket-loop",
-    docs_root: "doc",
-    ticket_root_pattern: "doc/<TICKET-ID>",
+    docs_root: ".auto-ceph-work/tickets",
+    ticket_root_pattern: ".auto-ceph-work/tickets/<TICKET-ID>",
   }, null, 2));
   write(path.join(rootDir, ".auto-ceph-work", "templates", "08_LOOP.md"), "# [TICKET-ID]\n");
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
@@ -116,8 +120,8 @@ test("create_ticket_docs script succeeds even when new-ticket-doc.sh is not exec
   write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
     version: 1,
     workflow: "auto-ceph-ticket-loop",
-    docs_root: "doc",
-    ticket_root_pattern: "doc/<TICKET-ID>",
+    docs_root: ".auto-ceph-work/tickets",
+    ticket_root_pattern: ".auto-ceph-work/tickets/<TICKET-ID>",
   }, null, 2));
   write(path.join(rootDir, ".auto-ceph-work", "templates", "01_TICKET.md"), "# [TICKET-ID]\n");
   write(path.join(rootDir, ".auto-ceph-work", "templates", "02_CONTEXT.md"), "# [TICKET-ID]\n");
@@ -145,7 +149,7 @@ test("create_ticket_docs script succeeds even when new-ticket-doc.sh is not exec
 
   assert.equal(result.status, 0, result.stderr);
   for (const fileName of ["01_TICKET.md", "02_CONTEXT.md", "03_PLAN.md", "04_EXECUTION.md", "05_UAT.md", "06_REVIEW.md", "07_SUMMARY.md", "08_LOOP.md"]) {
-    const created = path.join(rootDir, "doc", "CDS-2135", fileName);
+    const created = ticketPath(rootDir, "CDS-2135", fileName);
     assert.ok(fs.existsSync(created), created);
     assert.match(fs.readFileSync(created, "utf8"), /CDS-2135/);
   }
@@ -154,7 +158,7 @@ test("create_ticket_docs script succeeds even when new-ticket-doc.sh is not exec
 test("resolve_ticket_context extracts remote from 01_TICKET.md", () => {
   const rootDir = makeTempDir("ceph-service-api-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
     "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
   write(
@@ -271,11 +275,11 @@ test("prepare_ticket_branch creates and checks out the canonical ticket branch f
 test("detect_ticket_stage stays at intake when remote is missing", () => {
   const rootDir = makeTempDir("aceph-stage-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
     "# TICKET\n\n- repo: ceph-service-api\n- branch: feature/demo\n- endpoint: /health\n"
   );
   write(
-    path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"),
+    ticketPath(rootDir, "CDS-2135", "02_CONTEXT.md"),
     "# CONTEXT\n\nplaceholder\n"
   );
   write(
@@ -296,11 +300,11 @@ test("detect_ticket_stage stays at intake when remote is missing", () => {
 test("detect_ticket_stage advances past intake when repo and remote exist", () => {
   const rootDir = makeTempDir("aceph-stage-advance-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
     "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
   write(
-    path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"),
+    ticketPath(rootDir, "CDS-2135", "02_CONTEXT.md"),
     "# CONTEXT\n\n## 메타 정보\n\n- 단계: 문제 검토\n\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n"
   );
   write(
@@ -321,16 +325,16 @@ test("detect_ticket_stage advances past intake when repo and remote exist", () =
 test("detect_ticket_stage enters code review after validation when review doc is missing", () => {
   const rootDir = makeTempDir("aceph-stage-code-review-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
     "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
   write(
-    path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"),
+    ticketPath(rootDir, "CDS-2135", "02_CONTEXT.md"),
     "# CONTEXT\n\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n"
   );
-  write(path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
+  write(ticketPath(rootDir, "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(ticketPath(rootDir, "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
   write(
     path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
     fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"), "utf8")
@@ -349,17 +353,17 @@ test("detect_ticket_stage enters code review after validation when review doc is
 test("detect_ticket_stage enters review request after code review passes", () => {
   const rootDir = makeTempDir("aceph-stage-review-request-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
     "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
   write(
-    path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"),
+    ticketPath(rootDir, "CDS-2135", "02_CONTEXT.md"),
     "# CONTEXT\n\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n"
   );
-  write(path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
+  write(ticketPath(rootDir, "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(ticketPath(rootDir, "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
+  write(ticketPath(rootDir, "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
   write(
     path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
     fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"), "utf8")
@@ -611,7 +615,7 @@ test("update_jira_work_note_section replaces a top-level loop-history section wi
 test("resolve_loop_state script reports iteration metadata and retry limit", () => {
   const rootDir = makeTempDir("aceph-loop-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
+    ticketPath(rootDir, "CDS-2135", "08_LOOP.md"),
     `# CDS-2135 Loop History
 
 ## 메타 정보
@@ -690,7 +694,7 @@ test("resolve_loop_state script reports iteration metadata and retry limit", () 
 test("resolve_loop_state script blocks automatic retry after the limit", () => {
   const rootDir = makeTempDir("aceph-loop-limit-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
+    ticketPath(rootDir, "CDS-2135", "08_LOOP.md"),
     `# CDS-2135 Loop History
 
 ## 현재 루프 상태
@@ -737,7 +741,7 @@ test("resolve_loop_state script blocks automatic retry after the limit", () => {
 test("resolve_loop_state script blocks automatic retry for non-retryable terminal reasons", () => {
   const rootDir = makeTempDir("aceph-loop-non-retryable-root-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
+    ticketPath(rootDir, "CDS-2135", "08_LOOP.md"),
     `# CDS-2135 Loop History
 
 ## 현재 루프 상태
@@ -782,7 +786,7 @@ test("resolve_loop_state script blocks automatic retry for branch and post-ticke
   for (const reason of reasons) {
     const rootDir = makeTempDir(`aceph-loop-${reason}-root-`);
     write(
-      path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"),
+      ticketPath(rootDir, "CDS-2135", "08_LOOP.md"),
       `# CDS-2135 Loop History
 
 ## 현재 루프 상태
@@ -825,16 +829,16 @@ test("resolve_loop_state script blocks automatic retry for branch and post-ticke
 test("build_stage_prompt includes current project repo for intake matching", () => {
   const rootDir = makeTempDir("ceph-service-api-");
   write(
-    path.join(rootDir, "doc", "CDS-2135", "01_TICKET.md"),
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
     "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
-  write(path.join(rootDir, "doc", "CDS-2135", "02_CONTEXT.md"), "# CONTEXT\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: 200\n기준 브랜치: dev\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: pending\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "07_SUMMARY.md"), "# SUMMARY\n- 주요 변경 1: test\n");
-  write(path.join(rootDir, "doc", "CDS-2135", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 0\n- 최대 iteration: 10\n- 현재 loop 상태: idle\n- 현재 stage: 문제 확인\n- 마지막 결과 상태:\n- 마지막 loop 결정:\n- 마지막 fallback 단계:\n- 마지막 종료 사유:\n\n## Iteration History\n");
+  write(ticketPath(rootDir, "CDS-2135", "02_CONTEXT.md"), "# CONTEXT\n");
+  write(ticketPath(rootDir, "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: 200\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(ticketPath(rootDir, "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: pending\n");
+  write(ticketPath(rootDir, "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
+  write(ticketPath(rootDir, "CDS-2135", "07_SUMMARY.md"), "# SUMMARY\n- 주요 변경 1: test\n");
+  write(ticketPath(rootDir, "CDS-2135", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 0\n- 최대 iteration: 10\n- 현재 loop 상태: idle\n- 현재 stage: 문제 확인\n- 마지막 결과 상태:\n- 마지막 loop 결정:\n- 마지막 fallback 단계:\n- 마지막 종료 사유:\n\n## Iteration History\n");
   for (const scriptName of ["resolve_ticket_context.sh", "resolve_loop_state.sh", "build_stage_prompt.sh"]) {
     write(
       path.join(rootDir, ".auto-ceph-work", "scripts", scriptName),
@@ -865,16 +869,16 @@ test("build_stage_prompt includes current project repo for intake matching", () 
 test("build_stage_prompt includes required result fields for a non-transition stage", () => {
   const rootDir = makeTempDir("ceph-service-api-review-");
   write(
-    path.join(rootDir, "doc", "CDS-3000", "01_TICKET.md"),
+    ticketPath(rootDir, "CDS-3000", "01_TICKET.md"),
     "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
   );
-  write(path.join(rootDir, "doc", "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"), "# UAT\n- 최종 판단: pass\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "06_REVIEW.md"), "# REVIEW\n- 결과: pending\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "07_SUMMARY.md"), "# SUMMARY\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 1\n- 최대 iteration: 10\n- 현재 loop 상태: in_progress\n- 현재 stage: 코드 리뷰\n- 마지막 결과 상태: passed\n- 마지막 loop 결정: advance\n- 마지막 fallback 단계: 수행\n- 마지막 종료 사유: none\n\n## Iteration History\n");
+  write(ticketPath(rootDir, "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n");
+  write(ticketPath(rootDir, "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(ticketPath(rootDir, "CDS-3000", "05_UAT.md"), "# UAT\n- 최종 판단: pass\n");
+  write(ticketPath(rootDir, "CDS-3000", "06_REVIEW.md"), "# REVIEW\n- 결과: pending\n");
+  write(ticketPath(rootDir, "CDS-3000", "07_SUMMARY.md"), "# SUMMARY\n");
+  write(ticketPath(rootDir, "CDS-3000", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 1\n- 최대 iteration: 10\n- 현재 loop 상태: in_progress\n- 현재 stage: 코드 리뷰\n- 마지막 결과 상태: passed\n- 마지막 loop 결정: advance\n- 마지막 fallback 단계: 수행\n- 마지막 종료 사유: none\n\n## Iteration History\n");
   for (const scriptName of ["resolve_ticket_context.sh", "resolve_loop_state.sh", "build_stage_prompt.sh"]) {
     write(
       path.join(rootDir, ".auto-ceph-work", "scripts", scriptName),
@@ -1075,18 +1079,18 @@ test("jira sync contracts require stage excerpts and review-request loop-history
 
 test("build_stage_prompt reflects stage-specific jira target states", () => {
   const rootDir = makeTempDir("aceph-prompt-status-root-");
-  write(path.join(rootDir, "doc", "CDS-3000", "01_TICKET.md"), "# TICKET\n- repo: ceph-service-api\n- remote: origin\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: done\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"), "# UAT\n- 최종 판단: ok\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "06_REVIEW.md"), "# REVIEW\n- 결과: pending\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 1\n- 최대 iteration: 10\n- 현재 loop 상태: in_progress\n- 현재 stage: 코드 리뷰\n- 마지막 결과 상태: passed\n- 마지막 loop 결정: advance\n- 마지막 fallback 단계: 수행\n- 마지막 종료 사유: none\n\n## Iteration History\n");
+  write(ticketPath(rootDir, "CDS-3000", "01_TICKET.md"), "# TICKET\n- repo: ceph-service-api\n- remote: origin\n");
+  write(ticketPath(rootDir, "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n");
+  write(ticketPath(rootDir, "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: done\n");
+  write(ticketPath(rootDir, "CDS-3000", "05_UAT.md"), "# UAT\n- 최종 판단: ok\n");
+  write(ticketPath(rootDir, "CDS-3000", "06_REVIEW.md"), "# REVIEW\n- 결과: pending\n");
+  write(ticketPath(rootDir, "CDS-3000", "08_LOOP.md"), "# LOOP\n## 현재 루프 상태\n- 현재 iteration: 1\n- 최대 iteration: 10\n- 현재 loop 상태: in_progress\n- 현재 stage: 코드 리뷰\n- 마지막 결과 상태: passed\n- 마지막 loop 결정: advance\n- 마지막 fallback 단계: 수행\n- 마지막 종료 사유: none\n\n## Iteration History\n");
   write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
     version: 1,
     workflow: "auto-ceph-ticket-loop",
-    docs_root: "doc",
-    ticket_root_pattern: "doc/<TICKET-ID>",
+    docs_root: ".auto-ceph-work/tickets",
+    ticket_root_pattern: ".auto-ceph-work/tickets/<TICKET-ID>",
   }, null, 2));
   for (const rel of [
     ".auto-ceph-work/scripts/build_stage_prompt.sh",
@@ -1114,8 +1118,8 @@ test("workflow guard warns when stage-specific jira status metadata drifts", () 
   write(path.join(rootDir, ".auto-ceph-work", "project.json"), JSON.stringify({
     version: 1,
     workflow: "auto-ceph-ticket-loop",
-    docs_root: "doc",
-    ticket_root_pattern: "doc/<TICKET-ID>",
+    docs_root: ".auto-ceph-work/tickets",
+    ticket_root_pattern: ".auto-ceph-work/tickets/<TICKET-ID>",
   }, null, 2));
   for (const rel of [
     ".auto-ceph-work/hooks/aceph-workflow-guard.js",
@@ -1124,17 +1128,17 @@ test("workflow guard warns when stage-specific jira status metadata drifts", () 
   ]) {
     write(path.join(rootDir, rel), readRepoFile(rel));
   }
-  write(path.join(rootDir, "doc", "CDS-3000", "01_TICKET.md"), "# TICKET\n- repo: aceph-hook-root-x\n- remote: origin\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: ok\n- 성공 기준: ok\n기준 브랜치: dev\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n\n## 메타 정보\n\n- 단계: 수행\n- 상태: Waiting\n- Jira 상태: IN PROGRESS\n\n- 수행 내용: done\n");
-  write(path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"), "# UAT\n\n## 메타 정보\n\n- 단계: 검증\n- 상태: Waiting\n- Jira 상태: REVIEW\n\n- 최종 판단: ok\n");
+  write(ticketPath(rootDir, "CDS-3000", "01_TICKET.md"), "# TICKET\n- repo: aceph-hook-root-x\n- remote: origin\n");
+  write(ticketPath(rootDir, "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n");
+  write(ticketPath(rootDir, "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: ok\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n\n## 메타 정보\n\n- 단계: 수행\n- 상태: Waiting\n- Jira 상태: IN PROGRESS\n\n- 수행 내용: done\n");
+  write(ticketPath(rootDir, "CDS-3000", "05_UAT.md"), "# UAT\n\n## 메타 정보\n\n- 단계: 검증\n- 상태: Waiting\n- Jira 상태: REVIEW\n\n- 최종 판단: ok\n");
 
   const payload = {
     tool_name: "Edit",
     cwd: rootDir,
     tool_input: {
-      file_path: path.join(rootDir, "doc", "CDS-3000", "05_UAT.md"),
+      file_path: ticketPath(rootDir, "CDS-3000", "05_UAT.md"),
       new_string: "- 결과: updated",
     },
   };

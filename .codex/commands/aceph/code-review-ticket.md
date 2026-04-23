@@ -25,7 +25,7 @@ Review the implemented ticket work for code quality and capture review findings 
 <context>
 Ticket ID: required in `$ARGUMENTS`
 
-- Required artifact: `doc/<TICKET-ID>/06_REVIEW.md`
+- Required artifact: `.auto-ceph-work/tickets/<TICKET-ID>/06_REVIEW.md`
 - Jira target note: `코드 리뷰`
 - Jira target state: `RESOLVE`
 - Review inputs: `03_PLAN.md`, `04_EXECUTION.md`, `05_UAT.md`, current ticket branch diff, changed files

@@ -77,7 +77,7 @@ Auto-Ceph는 고정된 단계 순서로 티켓을 처리한다.
 
 `$auto-ceph <TICKET-ID>`:
 
-- `doc/<TICKET-ID>/` 상태를 읽는다.
+- `.auto-ceph-work/tickets/<TICKET-ID>/` 상태를 읽는다.
 - `detect_ticket_stage.sh`로 현재 단계를 판정한다.
 - 남은 워크플로를 이어서 진행한다.
 
@@ -114,7 +114,7 @@ Auto-Ceph는 Ralph loop 방식으로 동작한다.
 
 ## Ticket Docs
 
-티켓 산출물은 `doc/<TICKET-ID>/` 아래에 생성된다.
+티켓 산출물은 `.auto-ceph-work/tickets/<TICKET-ID>/` 아래에 생성된다.
 
 1. `01_TICKET.md`: Jira 원문에서 추출한 실행 입력과 티켓 메타 정보
 2. `02_CONTEXT.md`: 구현 대상과 검증 포인트 정리

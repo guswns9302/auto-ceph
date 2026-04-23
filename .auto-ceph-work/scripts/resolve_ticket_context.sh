@@ -8,7 +8,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TICKET_ID="$1"
-TICKET_DIR="$ROOT_DIR/doc/$TICKET_ID"
+TICKET_DIR="$ROOT_DIR/.auto-ceph-work/tickets/$TICKET_ID"
 TICKET_FILE="$TICKET_DIR/01_TICKET.md"
 CONTEXT_FILE="$TICKET_DIR/02_CONTEXT.md"
 PLAN_FILE="$TICKET_DIR/03_PLAN.md"

@@ -24,7 +24,7 @@ Implement the approved ticket plan on the prepared ticket branch and keep the ex
 <context>
 Ticket ID: required in `$ARGUMENTS`
 
-- Required artifact: `doc/<TICKET-ID>/04_EXECUTION.md`
+- Required artifact: `.auto-ceph-work/tickets/<TICKET-ID>/04_EXECUTION.md`
 - Jira target note: `수행`
 - Jira start state: `IN PROGRESS`
 - Jira end state: `RESOLVE`
