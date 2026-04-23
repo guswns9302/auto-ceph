@@ -404,16 +404,52 @@ test("format_jira_note script renders a start block for description work notes",
 });
 
 test("format_jira_note script renders a stage summary block for description work notes", () => {
+  const rootDir = makeTempDir("aceph-jira-note-summary-");
+  const artifactPath = path.join(rootDir, "03_PLAN.md");
+  write(
+    artifactPath,
+    [
+      "# CDS-2135 Plan",
+      "",
+      "## 메타 정보",
+      "",
+      "- 단계: 계획",
+      "",
+      "## 실행 계획",
+      "",
+      "### Task 1",
+      "",
+      "- 목표: 응답 수정",
+      "- 대상 파일: src/a.ts",
+      "",
+      "## 검증 계획",
+      "",
+      "- 테스트 항목: unit",
+      "- 성공 기준: pass",
+      "",
+      "## 검증 Unblock 정책",
+      "",
+      "- 최소 수정만 허용",
+      "",
+    ].join("\n")
+  );
   const result = runScript(
     path.join(__dirname, "..", ".auto-ceph-work", "scripts", "format_jira_note.sh"),
-    ["summary", "계획", "CDS-2135", "doc/CDS-2135/03_PLAN.md", "수행 진행", "없음"],
-    path.join(__dirname, "..")
+    ["summary", "계획", "CDS-2135", artifactPath, "수행 진행", "없음"],
+    rootDir
   );
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^#### 계획/m);
   assert.match(result.stdout, /^- 티켓: CDS-2135$/m);
-  assert.match(result.stdout, /^- 산출물: doc\/CDS-2135\/03_PLAN.md$/m);
+  assert.match(result.stdout, new RegExp(`^- 산출물: ${artifactPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  assert.match(result.stdout, /- 실행 계획:/);
+  assert.match(result.stdout, /  ### Task 1/);
+  assert.match(result.stdout, /  - 목표: 응답 수정/);
+  assert.match(result.stdout, /- 검증 계획:/);
+  assert.match(result.stdout, /  - 테스트 항목: unit/);
+  assert.match(result.stdout, /- 검증 Unblock 정책:/);
+  assert.match(result.stdout, /  - 최소 수정만 허용/);
   assert.match(result.stdout, /^- 다음 액션: 수행 진행$/m);
   assert.match(result.stdout, /^- blocker: 없음$/m);
 });
@@ -515,6 +551,61 @@ test("update_jira_work_note_section creates a work-note section when missing", (
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /### 문제점\n- 기존 문제[\s\S]*### 작업 노트[\s\S]*#### 문제 확인[\s\S]*- 시작/);
+});
+
+test("update_jira_work_note_section replaces a top-level loop-history section without touching work notes", () => {
+  const rootDir = makeTempDir("aceph-jira-loop-history-root-");
+  const descriptionPath = path.join(rootDir, "description.md");
+  const blockPath = path.join(rootDir, "loop.md");
+
+  write(
+    descriptionPath,
+    [
+      "# 제목",
+      "",
+      "### 작업 노트",
+      "",
+      "#### 리뷰 요청",
+      "",
+      "- 기존 요약",
+      "",
+      "### 루프 히스토리",
+      "",
+      "old loop",
+      "",
+      "### 문제점",
+      "",
+      "- 기존 문제",
+      "",
+    ].join("\n")
+  );
+  write(
+    blockPath,
+    [
+      "# CDS-2135 Loop History",
+      "",
+      "## 현재 루프 상태",
+      "",
+      "- 현재 iteration: 2",
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), "utf8")
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), descriptionPath, "루프 히스토리", "section", blockPath],
+    { cwd: rootDir, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /### 작업 노트[\s\S]*#### 리뷰 요청[\s\S]*- 기존 요약/);
+  assert.match(result.stdout, /### 루프 히스토리[\s\S]*# CDS-2135 Loop History[\s\S]*- 현재 iteration: 2/);
+  assert.doesNotMatch(result.stdout, /old loop/);
+  assert.match(result.stdout, /### 문제점[\s\S]*- 기존 문제/);
 });
 
 test("resolve_loop_state script reports iteration metadata and retry limit", () => {
@@ -846,7 +937,7 @@ test("runtime-orchestration stage result example matches the required complete f
   assert.match(runtimeOrchestration, /jira_stage_note_started: yes/);
   assert.match(runtimeOrchestration, /jira_stage_summary_written: yes/);
   assert.match(runtimeOrchestration, /jira_status_transition_applied: IN PROGRESS/);
-  assert.match(runtimeOrchestration, /jira_updates_applied: description_work_note_start=계획, description_work_note_summary=03_PLAN\.md 계획 요약 반영/);
+  assert.match(runtimeOrchestration, /jira_updates_applied: description_work_note_start=계획, description_work_note_summary=03_PLAN\.md 발췌 반영/);
   assert.match(runtimeOrchestration, /iteration: 1/);
   assert.match(runtimeOrchestration, /loop_decision: advance/);
   assert.match(runtimeOrchestration, /detected_stage_after_run: 수행/);
@@ -862,7 +953,7 @@ test("build_stage_prompt example uses field-complete jira_updates_applied wordin
   assert.match(promptBuilder, /jira_stage_note_started: yes/);
   assert.match(promptBuilder, /jira_stage_summary_written: yes/);
   assert.match(promptBuilder, /jira_status_transition_applied: \$stage_result_transition/);
-  assert.match(promptBuilder, /jira_updates_applied: description_work_note_start=\$stage_note, description_work_note_summary=\$stage_artifact updated/);
+  assert.match(promptBuilder, /jira_updates_applied: description_work_note_start=\$stage_note, description_work_note_summary=\$stage_artifact excerpt synced/);
   assert.match(promptBuilder, /retry_reason: none/);
   assert.doesNotMatch(promptBuilder, /jira_updates_applied: note=/);
 });
@@ -965,6 +1056,21 @@ test("jira status contracts pin each stage to an explicit target state", () => {
   assert.match(skill, /`검증`\/`코드 리뷰`는 `RESOLVE`, `리뷰 요청`은 `REVIEW`/);
   assert.match(codeReviewCommand, /Jira target state: `RESOLVE`/);
   assert.match(reviewRequestCommand, /Jira target state: `REVIEW`/);
+  assert.match(reviewRequestCommand, /### 루프 히스토리/);
+});
+
+test("jira sync contracts require stage excerpts and review-request loop-history sync", () => {
+  const jiraSync = readRepoFile(path.join(".auto-ceph-work", "references", "jira-sync.md"));
+  const runtimeContract = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-contract.md"));
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
+  const workflow = readRepoFile(path.join(".auto-ceph-work", "workflows", "review-request-ticket.md"));
+
+  assert.match(jiraSync, /산출물의 고정 섹션을 발췌/);
+  assert.match(jiraSync, /### 루프 히스토리/);
+  assert.match(runtimeContract, /작업 노트.*stage 산출물의 고정 섹션 발췌/);
+  assert.match(runtimeContract, /08_LOOP\.md.*루프 히스토리.*동기화/);
+  assert.match(skill, /`08_LOOP\.md` 전문을 Jira description top-level `### 루프 히스토리` 섹션에 동기화/);
+  assert.match(workflow, /Sync Jira description `### 루프 히스토리` to the full contents of `08_LOOP\.md`/);
 });
 
 test("build_stage_prompt reflects stage-specific jira target states", () => {
@@ -999,6 +1105,8 @@ test("build_stage_prompt reflects stage-specific jira target states", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Jira target state: REVIEW/);
   assert.match(result.stdout, /jira_status_transition_applied: REVIEW/);
+  assert.match(result.stdout, /description_loop_history=08_LOOP\.md synced/);
+  assert.match(result.stdout, /루프 히스토리/);
 });
 
 test("workflow guard warns when stage-specific jira status metadata drifts", () => {

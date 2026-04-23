@@ -6,11 +6,12 @@ const fs = require("fs");
 function usage() {
   return [
     "usage:",
-    "  update_jira_work_note_section.js <description-file> <stage> <mode> <block-file>",
+    "  update_jira_work_note_section.js <description-file> <target> <mode> <block-file>",
     "",
     "modes:",
     "  start    ensure the stage header exists and replace that stage block with the block file",
     "  summary  replace the matching stage block with the block file",
+    "  section  replace or create the matching top-level ### section with the block file",
   ].join("\n");
 }
 
@@ -79,6 +80,36 @@ function ensureWorkNoteSection(description) {
   };
 }
 
+function normalizeSectionHeader(target) {
+  const trimmed = target.trim();
+  if (trimmed.startsWith("### ")) {
+    return trimmed;
+  }
+  return `### ${trimmed.replace(/^#+\s*/, "")}`;
+}
+
+function ensureTopLevelSection(description, header) {
+  const normalized = normalizeTrailingNewline(description);
+  const lines = normalized.split("\n");
+  const range = getSectionRange(lines, header);
+  if (range) {
+    return { lines, range };
+  }
+
+  const next = [...lines];
+  if (next.length > 0 && next[next.length - 1] === "") {
+    next.pop();
+  }
+  if (next.length > 0 && next[next.length - 1] !== "") {
+    next.push("");
+  }
+  next.push(header, "");
+  return {
+    lines: next.concat([""]),
+    range: getSectionRange(next.concat([""]), header),
+  };
+}
+
 function replaceStageBlock(description, stage, replacementBlock) {
   const ensured = ensureWorkNoteSection(description);
   const lines = ensured.lines;
@@ -111,21 +142,39 @@ function replaceStageBlock(description, stage, replacementBlock) {
   return normalizeTrailingNewline(merged.join("\n").replace(/\n{3,}/g, "\n\n"));
 }
 
+function replaceTopLevelSection(description, target, replacementBlock) {
+  const header = normalizeSectionHeader(target);
+  const ensured = ensureTopLevelSection(description, header);
+  const lines = ensured.lines;
+  const section = getSectionRange(lines, header);
+  const replacementLines = normalizeTrailingNewline(replacementBlock).split("\n");
+  const nextSectionLines = [header, "", ...replacementLines];
+  const merged = [
+    ...lines.slice(0, section.start),
+    ...nextSectionLines,
+    ...lines.slice(section.end),
+  ];
+
+  return normalizeTrailingNewline(merged.join("\n").replace(/\n{3,}/g, "\n\n"));
+}
+
 function main(argv) {
   if (argv.length < 4) {
     process.stderr.write(`${usage()}\n`);
     process.exit(1);
   }
 
-  const [descriptionFile, stage, mode, blockFile] = argv;
-  if (!["start", "summary"].includes(mode)) {
+  const [descriptionFile, target, mode, blockFile] = argv;
+  if (!["start", "summary", "section"].includes(mode)) {
     process.stderr.write(`${usage()}\n`);
     process.exit(1);
   }
 
   const description = readFile(descriptionFile);
   const block = readFile(blockFile);
-  const next = replaceStageBlock(description, stage, block);
+  const next = mode === "section"
+    ? replaceTopLevelSection(description, target, block)
+    : replaceStageBlock(description, target, block);
   process.stdout.write(next);
 }
 

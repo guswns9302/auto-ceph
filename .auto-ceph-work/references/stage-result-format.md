@@ -13,7 +13,7 @@ artifacts_updated: doc/CDS-1234/01_TICKET.md, doc/CDS-1234/02_CONTEXT.md
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
 jira_status_transition_applied: IN PROGRESS
-jira_updates_applied: status=IN PROGRESS, description_work_note_start=문제 확인, description_work_note_summary=01_TICKET.md/02_CONTEXT.md 작성 완료
+jira_updates_applied: status=IN PROGRESS, description_work_note_start=문제 확인, description_work_note_summary=01_TICKET.md 핵심 발췌 반영
 next_stage: 문제 검토
 fallback_stage: 문제 확인
 iteration: 1
@@ -41,6 +41,7 @@ summary: one-line summary
 `jira_stage_note_started`와 `jira_stage_summary_written`가 모두 `yes`가 아니면 stage 완료 결과로 취급하지 않는다.
 `jira_status_transition_applied` 허용 값은 `IN PROGRESS`, `RESOLVE`, `REVIEW`, `unchanged`, `none`이다.
 상태 보장이 필요한 stage인데 `jira_status_transition_applied`가 비어 있거나 기대한 값과 다르면 stage 완료 결과로 취급하지 않는다.
+`jira_updates_applied`에는 작업 노트 발췌 반영 내용을 명시해야 하며, `리뷰 요청` 단계에서는 `description_loop_history=08_LOOP.md synced`를 추가해야 한다.
 검증 단계에서 API 티켓이면 `summary`에 핵심 테스트 결과와 최종 판단이 요약되어야 한다.
 코드 리뷰 단계면 `summary`에 핵심 finding 유무와 `approved` 또는 `changes_requested` 판정이 요약되어야 한다.
 `iteration`은 현재 stage 실행 번호가 아니라 현재 loop attempt 번호다.

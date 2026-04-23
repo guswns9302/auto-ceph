@@ -39,7 +39,8 @@
 
 1. 작업 시작 전에 Atlassian MCP의 `jira_get_issue`로 현재 description을 읽고, Jira issue description 본문의 `### 작업 노트` 섹션에 현재 stage를 먼저 기록한 뒤 `jira_update_issue`로 description 전체를 갱신한다.
 2. 현재 stage의 산출물을 만들고 필요한 파일과 상태를 갱신한다.
-3. 산출물 작성이 끝난 뒤 Atlassian MCP로 같은 description 본문의 `### 작업 노트` 섹션에서 해당 stage 블록을 최신 요약 bullet로 갱신한다.
+3. 산출물 작성이 끝난 뒤 Atlassian MCP로 같은 description 본문의 `### 작업 노트` 섹션에서 해당 stage 블록을 최신 산출물 발췌 기반 요약으로 갱신한다.
+4. `리뷰 요청` 단계에서는 위 작업 외에 description 본문의 `### 루프 히스토리` 섹션도 최신 `08_LOOP.md` 전문으로 전체 교체 동기화한다.
 
 위 3단계가 모두 끝나야 stage 완료로 본다.
 
@@ -53,7 +54,11 @@
 - 시작 기록은 빈 헤더를 두지 말고 최소 `- 시작` bullet을 포함한다.
 - 종료 요약은 같은 stage 헤더 아래 Markdown bullet 목록 형식으로 남긴다.
 - stage를 다시 실행하면 같은 stage 블록 전체를 최신 내용으로 교체한다.
-- 종료 요약은 실제 수정 파일, 검증 결과, blocker 여부 중 핵심만 짧게 남긴다.
+- 종료 요약은 해당 stage 산출물의 고정 섹션을 발췌한 본문과 최소 메타를 포함해야 한다.
+- 각 stage block에는 최소한 티켓 ID, 마지막 갱신 시각, 산출물 경로를 남긴다.
+- `문제 확인`은 프로젝트/문제점/개선 방향, `문제 검토`는 구현 대상/검증 포인트, `계획`은 실행 계획/검증 계획/검증 Unblock 정책을 반영한다.
+- `수행`은 수행 내용/검증 보정 사항/검증 Unblock 수정, `검증`은 실행 결과, `코드 리뷰`는 핵심 finding/판정/다음 액션, `리뷰 요청`은 변경 사항/검증 결과/코드 리뷰 결과를 반영한다.
+- `리뷰 요청` 단계에서는 description에 top-level `### 루프 히스토리` 섹션을 두고 `08_LOOP.md` 전문을 fenced code block 없이 그대로 반영한다.
 - 종료 요약이 없으면 stage는 완료가 아니다.
 - 시작 기록 쓰기 실패 또는 종료 요약 쓰기 실패는 모두 stage 실패로 간주한다.
 - Jira 쓰기 실패가 있으면 문서 변경이 남아 있어도 다음 stage로 진행하지 않는다.

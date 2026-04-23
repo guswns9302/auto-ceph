@@ -91,7 +91,7 @@ artifacts_updated: doc/CDS-1234/03_PLAN.md
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
 jira_status_transition_applied: IN PROGRESS
-jira_updates_applied: description_work_note_start=계획, description_work_note_summary=03_PLAN.md 계획 요약 반영
+jira_updates_applied: description_work_note_start=계획, description_work_note_summary=03_PLAN.md 발췌 반영
 next_stage: 수행
 fallback_stage: 문제 검토
 iteration: 1
@@ -111,3 +111,5 @@ stage별 목표 Jira 상태는 아래와 같이 고정한다.
 - `검증` -> `RESOLVE`
 - `코드 리뷰` -> `RESOLVE`
 - `리뷰 요청` -> `REVIEW`
+
+`리뷰 요청` 단계에서는 위 status 보장 외에도 `07_SUMMARY.md` 핵심 섹션을 `#### 리뷰 요청` 블록에 반영하고, `08_LOOP.md` 전문을 Jira description의 `### 루프 히스토리` 섹션에 동기화해야 한다.

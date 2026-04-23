@@ -103,6 +103,7 @@ case "$STAGE" in
     stage_target_state="REVIEW"
     stage_transition_timing="리뷰 요청 stage에서 보장"
     stage_result_transition="REVIEW"
+    extra_rules="리뷰 요청 stage에서는 $summary_file 핵심 섹션을 Jira 작업 노트에 반영하고, $loop_file 전문을 Jira description top-level \`### 루프 히스토리\` 섹션에 동기화하라."
     ;;
   *)
     echo "unknown stage: $STAGE" >&2
@@ -229,7 +230,7 @@ artifacts_updated: $stage_artifact
 jira_stage_note_started: yes
 jira_stage_summary_written: yes
 jira_status_transition_applied: $stage_result_transition
-jira_updates_applied: description_work_note_start=$stage_note, description_work_note_summary=$stage_artifact updated
+jira_updates_applied: description_work_note_start=$stage_note, description_work_note_summary=$stage_artifact excerpt synced$( [ "$STAGE" = "리뷰 요청" ] && printf ', description_loop_history=08_LOOP.md synced' )
 next_stage: $next_stage
 fallback_stage: $fallback_stage
 iteration: ${run_iteration:-1}

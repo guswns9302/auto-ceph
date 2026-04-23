@@ -28,6 +28,7 @@ Ticket ID: required in `$ARGUMENTS`
 - Jira target note: `리뷰 요청`
 - Jira target state: `REVIEW`
 - Stage must first update the Jira issue description `### 작업 노트` section with `#### 리뷰 요청` plus `- 시작`, then update artifacts, then replace that same stage block with the Jira stage summary bullet items.
+- This stage must also sync Jira description top-level `### 루프 히스토리` to the full contents of `doc/<TICKET-ID>/08_LOOP.md`.
 </context>
 
 <process>
