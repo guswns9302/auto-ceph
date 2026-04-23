@@ -41,9 +41,10 @@ summary: one-line summary
 `jira_stage_note_started`와 `jira_stage_summary_written`가 모두 `yes`가 아니면 stage 완료 결과로 취급하지 않는다.
 `jira_status_transition_applied` 허용 값은 `IN PROGRESS`, `RESOLVE`, `REVIEW`, `unchanged`, `none`이다.
 상태 보장이 필요한 stage인데 `jira_status_transition_applied`가 비어 있거나 기대한 값과 다르면 stage 완료 결과로 취급하지 않는다.
-`jira_updates_applied`에는 작업 노트 발췌 반영 내용을 명시해야 하며, `리뷰 요청` 단계에서는 `description_loop_history=08_LOOP.md synced`를 추가해야 한다.
+`jira_updates_applied`에는 작업 노트 발췌 반영 내용을 명시해야 하며, `리뷰 요청` 단계에서는 `description_merge_request=07_SUMMARY.md excerpt synced, description_loop_history=08_LOOP.md synced`를 추가해야 한다.
 검증 단계에서 API 티켓이면 `summary`에 핵심 테스트 결과와 최종 판단이 요약되어야 한다.
 코드 리뷰 단계면 `summary`에 핵심 finding 유무와 `approved` 또는 `changes_requested` 판정이 요약되어야 한다.
+리뷰 요청 단계면 `summary`에 MR 생성 또는 재사용 결과와 핵심 URL이 요약되어야 한다.
 `iteration`은 현재 stage 실행 번호가 아니라 현재 loop attempt 번호다.
 같은 loop 안의 stage 진행은 같은 `iteration` 값을 공유해야 한다.
 `iteration`, `loop_decision`, `detected_stage_after_run`, `terminal_reason`, `retry_reason`은 Ralph loop 제어에 필수다.

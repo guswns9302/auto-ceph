@@ -122,6 +122,7 @@ render_stage_extracts() {
       render_named_block "변경 사항" "$(extract_section_body "$artifact_path" "## 변경 사항")"
       render_named_block "검증 결과" "$(extract_section_body "$artifact_path" "## 검증 결과")"
       render_named_block "코드 리뷰 결과" "$(extract_section_body "$artifact_path" "## 코드 리뷰 결과")"
+      render_named_block "Merge Request" "$(extract_section_body "$artifact_path" "## Merge Request")"
       ;;
   esac
 }

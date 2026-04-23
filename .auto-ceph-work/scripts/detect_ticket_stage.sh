@@ -37,6 +37,18 @@ has_nonempty_section_bullet() {
   ' "$path"
 }
 
+has_section_kv_value() {
+  local path="$1"
+  local section="$2"
+  local key="$3"
+  awk -v section="$section" -v key="$key" '
+    $0 == section { in_section=1; next }
+    /^## / && in_section { exit }
+    in_section && $0 ~ ("^- " key ":[[:space:]]*[^[:space:]].*$") { found=1; exit }
+    END { exit(found ? 0 : 1) }
+  ' "$path"
+}
+
 has_prefixed_value() {
   local path="$1"
   local label="$2"
@@ -96,5 +108,12 @@ if ! has_nonempty_file "$TICKET_DIR/07_SUMMARY.md" \
   echo "리뷰 요청"
   exit 0
 fi
+
+for required_key in "상태" "제목" "URL" "source" "target"; do
+  if ! has_section_kv_value "$TICKET_DIR/07_SUMMARY.md" "## Merge Request" "$required_key"; then
+    echo "리뷰 요청"
+    exit 0
+  fi
+done
 
 echo "완료"

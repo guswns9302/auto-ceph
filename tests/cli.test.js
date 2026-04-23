@@ -36,6 +36,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"), '"use strict";\n');
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"), "console.log('prompt');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
@@ -72,6 +73,14 @@ function runScript(scriptPath, args, cwd) {
 function runShell(command, cwd) {
   return spawnSync("bash", ["-lc", command], {
     cwd,
+    encoding: "utf8",
+  });
+}
+
+function runNode(scriptPath, args, cwd, env) {
+  return spawnSync(process.execPath, [scriptPath, ...args], {
+    cwd,
+    env: { ...process.env, ...env },
     encoding: "utf8",
   });
 }
@@ -240,6 +249,130 @@ test("resolve_atlassian_identity returns empty username when config is missing",
   assert.match(result.stdout, /^jira_username=''$/m);
 });
 
+test("create_or_reuse_merge_request helper reuses an existing open MR", () => {
+  const rootDir = makeTempDir("aceph-mr-reuse-");
+  const summaryFile = path.join(rootDir, "07_SUMMARY.md");
+  const logFile = path.join(rootDir, "glab.log");
+  const mockGlab = path.join(rootDir, "mock-glab.sh");
+
+  write(summaryFile, "# summary\n");
+  write(
+    mockGlab,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "printf '%s\\n' \"$*\" >> \"$GLAB_LOG\"",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
+      "  cat <<'EOF'",
+      '[{"title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev"}]',
+      "EOF",
+      "  exit 0",
+      "fi",
+      "echo unexpected >&2",
+      "exit 1",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockGlab, 0o755);
+
+  const result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"),
+    ["CDS-2135", "feature/CDS-2135", "dev", "CDS-2135 API 응답 수정", summaryFile],
+    rootDir,
+    { GLAB_BIN: mockGlab, GLAB_LOG: logFile }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^status=reused$/m);
+  assert.match(result.stdout, /^title=CDS-2135 API 응답 수정$/m);
+  assert.match(result.stdout, /^url=https:\/\/gitlab\.example\.com\/group\/proj\/-\/merge_requests\/12$/m);
+  assert.match(result.stdout, /^source=feature\/CDS-2135$/m);
+  assert.match(result.stdout, /^target=dev$/m);
+  assert.doesNotMatch(fs.readFileSync(logFile, "utf8"), /^mr create /m);
+});
+
+test("create_or_reuse_merge_request helper creates an MR when none exists", () => {
+  const rootDir = makeTempDir("aceph-mr-create-");
+  const summaryFile = path.join(rootDir, "07_SUMMARY.md");
+  const stateFile = path.join(rootDir, "state.txt");
+  const logFile = path.join(rootDir, "glab.log");
+  const mockGlab = path.join(rootDir, "mock-glab.sh");
+
+  write(summaryFile, "# summary\n");
+  write(
+    mockGlab,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "printf '%s\\n' \"$*\" >> \"$GLAB_LOG\"",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
+      "  if [ ! -f \"$STATE_FILE\" ]; then",
+      "    echo '[]'",
+      "  else",
+      "    cat <<'EOF'",
+      '[{"title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/13","source_branch":"feature/CDS-2135","target_branch":"dev"}]',
+      "EOF",
+      "  fi",
+      "  exit 0",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"create\" ]; then",
+      "  touch \"$STATE_FILE\"",
+      "  echo created",
+      "  exit 0",
+      "fi",
+      "echo unexpected >&2",
+      "exit 1",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockGlab, 0o755);
+
+  const result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"),
+    ["CDS-2135", "feature/CDS-2135", "dev", "CDS-2135 API 응답 수정", summaryFile],
+    rootDir,
+    { GLAB_BIN: mockGlab, GLAB_LOG: logFile, STATE_FILE: stateFile }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^status=created$/m);
+  assert.match(result.stdout, /^url=https:\/\/gitlab\.example\.com\/group\/proj\/-\/merge_requests\/13$/m);
+  assert.match(fs.readFileSync(logFile, "utf8"), /^mr create /m);
+});
+
+test("create_or_reuse_merge_request helper fails on malformed glab list output", () => {
+  const rootDir = makeTempDir("aceph-mr-malformed-");
+  const summaryFile = path.join(rootDir, "07_SUMMARY.md");
+  const mockGlab = path.join(rootDir, "mock-glab.sh");
+
+  write(summaryFile, "# summary\n");
+  write(
+    mockGlab,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
+      "  echo 'not-json'",
+      "  exit 0",
+      "fi",
+      "echo unexpected >&2",
+      "exit 1",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockGlab, 0o755);
+
+  const result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"),
+    ["CDS-2135", "feature/CDS-2135", "dev", "CDS-2135 API 응답 수정", summaryFile],
+    rootDir,
+    { GLAB_BIN: mockGlab }
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /failed to parse glab mr list output/);
+});
+
 test("prepare_ticket_branch creates and checks out the canonical ticket branch from dev", () => {
   const rootDir = makeTempDir("ceph-service-api-");
   const remoteDir = makeTempDir("ceph-service-api-remote-");
@@ -379,6 +512,98 @@ test("detect_ticket_stage enters review request after code review passes", () =>
   assert.equal(result.stdout.trim(), "리뷰 요청");
 });
 
+test("detect_ticket_stage stays at review request when merge request metadata is missing", () => {
+  const rootDir = makeTempDir("aceph-stage-review-request-mr-missing-root-");
+  write(
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
+  );
+  write(
+    ticketPath(rootDir, "CDS-2135", "02_CONTEXT.md"),
+    "# CONTEXT\n\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n"
+  );
+  write(ticketPath(rootDir, "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(ticketPath(rootDir, "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
+  write(ticketPath(rootDir, "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
+  write(
+    ticketPath(rootDir, "CDS-2135", "07_SUMMARY.md"),
+    [
+      "# SUMMARY",
+      "",
+      "- 주요 변경 1: test",
+      "",
+      "## Merge Request",
+      "",
+      "- 상태:",
+      "- 제목:",
+      "- URL:",
+      "- source:",
+      "- target:",
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"), "utf8")
+  );
+
+  const result = runScript(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    ["CDS-2135"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), "리뷰 요청");
+});
+
+test("detect_ticket_stage marks complete when merge request metadata is present", () => {
+  const rootDir = makeTempDir("aceph-stage-complete-root-");
+  write(
+    ticketPath(rootDir, "CDS-2135", "01_TICKET.md"),
+    "# TICKET\n\n- repo: ceph-service-api\n- remote: origin\n"
+  );
+  write(
+    ticketPath(rootDir, "CDS-2135", "02_CONTEXT.md"),
+    "# CONTEXT\n\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n"
+  );
+  write(ticketPath(rootDir, "CDS-2135", "03_PLAN.md"), "# PLAN\n- 목표: test\n- 성공 기준: ok\n기준 브랜치: dev\n");
+  write(ticketPath(rootDir, "CDS-2135", "04_EXECUTION.md"), "# EXECUTION\n- 수행 내용: test\n");
+  write(ticketPath(rootDir, "CDS-2135", "05_UAT.md"), "# UAT\n- 최종 판단: passed\n");
+  write(ticketPath(rootDir, "CDS-2135", "06_REVIEW.md"), "# REVIEW\n- 결과: approved\n");
+  write(
+    ticketPath(rootDir, "CDS-2135", "07_SUMMARY.md"),
+    [
+      "# SUMMARY",
+      "",
+      "- 주요 변경 1: test",
+      "",
+      "## Merge Request",
+      "",
+      "- 상태: created",
+      "- 제목: CDS-2135 API 응답 수정",
+      "- URL: https://gitlab.example.com/group/proj/-/merge_requests/12",
+      "- source: feature/CDS-2135",
+      "- target: dev",
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"), "utf8")
+  );
+
+  const result = runScript(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "detect_ticket_stage.sh"),
+    ["CDS-2135"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), "완료");
+});
+
 test("cli install does not install a Stop hook or run-state helper", () => {
   const sourceRoot = makeTempDir("aceph-cli-source-no-stop-");
   makeSourceTree(sourceRoot);
@@ -456,6 +681,56 @@ test("format_jira_note script renders a stage summary block for description work
   assert.match(result.stdout, /  - 최소 수정만 허용/);
   assert.match(result.stdout, /^- 다음 액션: 수행 진행$/m);
   assert.match(result.stdout, /^- blocker: 없음$/m);
+});
+
+test("format_jira_note script includes merge request metadata for review request summaries", () => {
+  const rootDir = makeTempDir("aceph-jira-note-review-request-");
+  const artifactPath = path.join(rootDir, "07_SUMMARY.md");
+  write(
+    artifactPath,
+    [
+      "# CDS-2135 Review Summary",
+      "",
+      "## 메타 정보",
+      "",
+      "- 단계: 리뷰 요청",
+      "",
+      "## 변경 사항",
+      "",
+      "- 주요 변경 1: 응답 수정",
+      "",
+      "## 검증 결과",
+      "",
+      "- 테스트: pass",
+      "",
+      "## 코드 리뷰 결과",
+      "",
+      "- 판정: approved",
+      "",
+      "## Merge Request",
+      "",
+      "- 상태: reused",
+      "- 제목: CDS-2135 API 응답 수정",
+      "- URL: https://gitlab.example.com/group/proj/-/merge_requests/12",
+      "- source: feature/CDS-2135",
+      "- target: dev",
+      "",
+    ].join("\n")
+  );
+
+  const result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "format_jira_note.sh"),
+    ["summary", "리뷰 요청", "CDS-2135", artifactPath, "종료", "없음"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /- Merge Request:/);
+  assert.match(result.stdout, /  - 상태: reused/);
+  assert.match(result.stdout, /  - 제목: CDS-2135 API 응답 수정/);
+  assert.match(result.stdout, /  - URL: https:\/\/gitlab\.example\.com\/group\/proj\/-\/merge_requests\/12/);
+  assert.match(result.stdout, /  - source: feature\/CDS-2135/);
+  assert.match(result.stdout, /  - target: dev/);
 });
 
 test("update_jira_work_note_section preserves other description sections and replaces one stage block", () => {
@@ -958,6 +1233,7 @@ test("build_stage_prompt example uses field-complete jira_updates_applied wordin
   assert.match(promptBuilder, /jira_stage_summary_written: yes/);
   assert.match(promptBuilder, /jira_status_transition_applied: \$stage_result_transition/);
   assert.match(promptBuilder, /jira_updates_applied: description_work_note_start=\$stage_note, description_work_note_summary=\$stage_artifact excerpt synced/);
+  assert.match(promptBuilder, /description_merge_request=07_SUMMARY\.md excerpt synced/);
   assert.match(promptBuilder, /retry_reason: none/);
   assert.doesNotMatch(promptBuilder, /jira_updates_applied: note=/);
 });
@@ -1070,11 +1346,50 @@ test("jira sync contracts require stage excerpts and review-request loop-history
   const workflow = readRepoFile(path.join(".auto-ceph-work", "workflows", "review-request-ticket.md"));
 
   assert.match(jiraSync, /산출물의 고정 섹션을 발췌/);
+  assert.match(jiraSync, /Merge Request 핵심 메타/);
   assert.match(jiraSync, /### 루프 히스토리/);
   assert.match(runtimeContract, /작업 노트.*stage 산출물의 고정 섹션 발췌/);
+  assert.match(runtimeContract, /canonical helper 기반 MR 생성 또는 재사용/);
   assert.match(runtimeContract, /08_LOOP\.md.*루프 히스토리.*동기화/);
   assert.match(skill, /`08_LOOP\.md` 전문을 Jira description top-level `### 루프 히스토리` 섹션에 동기화/);
   assert.match(workflow, /Sync Jira description `### 루프 히스토리` to the full contents of `08_LOOP\.md`/);
+});
+
+test("review-request assets and contracts require glab merge request handling", () => {
+  const template = readRepoFile(path.join(".auto-ceph-work", "templates", "07_SUMMARY.md"));
+  const workflow = readRepoFile(path.join(".auto-ceph-work", "workflows", "review-request-ticket.md"));
+  const command = readRepoFile(path.join(".codex", "commands", "aceph", "review-request-ticket.md"));
+  const agent = readRepoFile(path.join(".codex", "agents", "aceph-ticket-review-request.toml"));
+  const promptBuilder = readRepoFile(path.join(".auto-ceph-work", "scripts", "build_stage_prompt.sh"));
+  const stageResult = readRepoFile(path.join(".auto-ceph-work", "references", "stage-result-format.md"));
+  const helper = readRepoFile(path.join(".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"));
+
+  assert.match(template, /## Merge Request/);
+  assert.match(template, /- 상태:/);
+  assert.match(template, /- 제목:/);
+  assert.match(template, /- URL:/);
+  assert.match(template, /- source:/);
+  assert.match(template, /- target:/);
+  assert.match(workflow, /Use the canonical helper `.auto-ceph-work\/scripts\/create_or_reuse_merge_request\.js`/);
+  assert.match(command, /canonical helper `.auto-ceph-work\/scripts\/create_or_reuse_merge_request\.js`/);
+  assert.match(agent, /Use `.auto-ceph-work\/scripts\/create_or_reuse_merge_request\.js` as the canonical merge-request path/);
+  assert.match(promptBuilder, /create_or_reuse_merge_request\.js/);
+  assert.match(helper, /mr",\s+"list"/);
+  assert.match(helper, /mr",\s+"create"/);
+  assert.match(stageResult, /MR 생성 또는 재사용 결과와 핵심 URL/);
+});
+
+test("auto-ceph skill defines review-request completion as a helper-backed exception", () => {
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
+  const detector = readRepoFile(path.join(".auto-ceph-work", "scripts", "detect_ticket_stage.sh"));
+  const workflow = readRepoFile(path.join(".auto-ceph-work", "references", "workflow.md"));
+  const runtimeContract = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-contract.md"));
+
+  assert.match(skill, /일반 stage 완료 조건은 `Jira 시작 기록 -> 산출물 생성\/갱신 -> Jira 요약 기록`/);
+  assert.match(skill, /`리뷰 요청` stage 완료 조건은 `Jira 시작 기록 -> 07_SUMMARY\.md 갱신 -> MR helper 성공 -> Jira 요약 기록 -> 08_LOOP\.md 동기화`/);
+  assert.match(workflow, /`07_SUMMARY\.md`가 미완료거나 MR 메타가 비어 있으면 `리뷰 요청`/);
+  assert.match(runtimeContract, /`리뷰 요청` 단계는 `07_SUMMARY\.md` 기반 작업 노트 갱신, canonical helper 기반 MR 생성 또는 재사용/);
+  assert.match(detector, /for required_key in "상태" "제목" "URL" "source" "target"/);
 });
 
 test("build_stage_prompt reflects stage-specific jira target states", () => {
@@ -1109,6 +1424,9 @@ test("build_stage_prompt reflects stage-specific jira target states", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Jira target state: REVIEW/);
   assert.match(result.stdout, /jira_status_transition_applied: REVIEW/);
+  assert.match(result.stdout, /glab/);
+  assert.match(result.stdout, /## Merge Request/);
+  assert.match(result.stdout, /description_merge_request=07_SUMMARY\.md excerpt synced/);
   assert.match(result.stdout, /description_loop_history=08_LOOP\.md synced/);
   assert.match(result.stdout, /루프 히스토리/);
 });

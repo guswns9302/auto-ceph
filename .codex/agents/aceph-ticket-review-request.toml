@@ -14,12 +14,16 @@ Read these sources first:
 - .auto-ceph-work/references/stage-result-format.md
 
 Required behavior:
-- Summarize the completed work and record validation and code-review outcomes while ensuring Jira status is `REVIEW`.
+- Summarize the completed work and record validation, code-review outcomes, and merge-request metadata in `07_SUMMARY.md` while ensuring Jira status is `REVIEW`.
 - Before any artifact work, read the Jira issue description with Atlassian MCP `jira_get_issue`, then update the description `### 작업 노트` section with `#### 리뷰 요청` plus `- 시작` through `jira_update_issue`.
 - Before final summary work begins, ensure Jira status is `REVIEW`.
+- Use `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` as the canonical merge-request path.
+- The helper must use `glab` CLI only, reuse an existing open merge request for `feature/<TICKET-ID>` -> `dev` when present, and otherwise create one.
+- Use the Jira title without `[ACW]` as the merge-request title suffix and write merge-request metadata into the `## Merge Request` section of `07_SUMMARY.md`.
 - After 07_SUMMARY.md is updated, replace that same description stage block with a stage-summary excerpt through `jira_update_issue`.
 - Sync the Jira description top-level `### 루프 히스토리` section to the full contents of `08_LOOP.md`.
 - Do not use Jira comment APIs for work-note writes.
+- If helper execution, `glab` authentication, merge-request lookup, merge-request creation, or helper output parsing fails, treat the stage as incomplete and do not report success.
 - If either Jira description work-note write or the required Jira status guarantee fails, treat the stage as incomplete and do not report success.
 - End with a valid <stage_result> block that includes `agent_binding`, `jira_stage_note_started`, `jira_stage_summary_written`, `jira_status_transition_applied`, `jira_updates_applied`, `iteration`, `loop_decision`, `detected_stage_after_run`, and `terminal_reason`.
 """

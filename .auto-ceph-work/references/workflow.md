@@ -35,7 +35,7 @@
 - `04_EXECUTION.md`가 미완성이면 `수행`
 - `05_UAT.md`가 미완료면 `검증`
 - `06_REVIEW.md`가 미완료면 `코드 리뷰`
-- `07_SUMMARY.md`가 미완료면 `리뷰 요청`
+- `07_SUMMARY.md`가 미완료거나 MR 메타가 비어 있으면 `리뷰 요청`
 - `08_LOOP.md`는 반복 제어 이력을 담고 detector의 현재 stage 판정과는 분리한다
 - `08_LOOP.md`의 `retry_pending`은 다음 fallback stage를 같은 실행 안에서 다시 dispatch하기 위한 중간 상태다
 
@@ -50,6 +50,7 @@
 - retry 시에는 다음 iteration을 연 뒤 그 iteration의 `fallback_stage`를 같은 실행 안에서 바로 소비한다
 - 자동 반복 상한은 전체 loop attempt 10회다
 - `리뷰 요청` 완료가 자동 루프의 기본 종료 지점이다
+- `리뷰 요청` 완료의 의미에는 canonical helper 기반 MR 생성 또는 재사용과 Jira 요약 동기화가 포함된다
 - 이후 새 요구나 피드백은 다음 실행에서 Jira 설명/작업 노트를 우선 읽고 새 iteration을 연다
 - 각 티켓 loop 종료 뒤에는 작업 트리 변경이 있을 경우 티켓 단위 `git commit`을 수행해야 한다
 - push는 현재 checkout 브랜치 upstream을 우선 사용하고, upstream이 없으면 티켓의 `remote`와 현재 티켓 브랜치 `feature/<TICKET-ID>`를 fallback으로 사용한다
