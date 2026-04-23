@@ -1641,11 +1641,11 @@ test("stage agents pin role-specific model and reasoning defaults", () => {
   const expectedAgents = {
     "aceph-ticket-intake.toml": { model: "gpt-5.4-mini", reasoning: "medium" },
     "aceph-ticket-plan.toml": { model: "gpt-5.4-mini", reasoning: "high" },
-    "aceph-ticket-review.toml": { model: "gpt-5.4-mini", reasoning: "high" },
-    "aceph-ticket-execute.toml": { model: "gpt-5.4", reasoning: "high" },
-    "aceph-ticket-verify.toml": { model: "gpt-5.4", reasoning: "high" },
+    "aceph-ticket-review.toml": { model: "gpt-5.4-mini", reasoning: "low" },
+    "aceph-ticket-execute.toml": { model: "gpt-5.4", reasoning: "medium" },
+    "aceph-ticket-verify.toml": { model: "gpt-5.4", reasoning: "medium" },
     "aceph-ticket-code-review.toml": { model: "gpt-5.4", reasoning: "high" },
-    "aceph-ticket-review-request.toml": { model: "gpt-5.4-mini", reasoning: "low" },
+    "aceph-ticket-review-request.toml": { model: "gpt-5.4-mini", reasoning: "medium" },
   };
 
   for (const [fileName, expected] of Object.entries(expectedAgents)) {
