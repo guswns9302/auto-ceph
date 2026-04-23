@@ -44,6 +44,7 @@
 - stage 결과가 `blocked`, `failed`, `needs_retry`여도 `terminal_reason`이 입력/설정 오류면 재진입하지 않는다
 - 비재시도 종료 사유는 `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`다
 - 그 외 stage 결과는 메인 세션이 같은 실행 안에서 즉시 `fallback_stage`로 재진입한다
+- `needs_retry`이면서 `retry_reason=verification_unblock`이면 메인 세션은 현재 티켓 검증을 직접 막는 최소 unblock 수정만 허용하는 inner loop를 연다
 - `코드 리뷰` 단계에서 `changes_requested`가 나오면 retryable failure로 보고 `수행`으로 되돌린다
 - 같은 loop 안의 stage 전진은 iteration을 올리지 않는다
 - retry 시에는 다음 iteration을 연 뒤 그 iteration의 `fallback_stage`를 같은 실행 안에서 바로 소비한다
@@ -72,6 +73,7 @@
   - 검증 단계에서 테스트 우선
   - 계획 단계에서 테스트 기준과 완료 기준을 정리
   - 수행 단계에서 필요하면 `04_EXECUTION.md`에 실제 검증 보정사항을 기록
+  - 검증이 unrelated test compile failure로 막히면 수행 단계는 최소 verification-unblock 수정만 예외적으로 허용한다
   - 검증 단계에서 테스트 결과와 산출물을 기준으로 최종 판단
 - 코드 품질 확인
   - 코드 리뷰 단계에서 현재 브랜치의 변경 코드와 diff를 직접 검토한다

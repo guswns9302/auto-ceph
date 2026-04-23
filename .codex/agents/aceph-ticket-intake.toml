@@ -1,5 +1,7 @@
 name = "aceph-ticket-intake"
 description = "Intake Jira TO DO tickets into 01_TICKET.md and 02_CONTEXT.md, then sync Jira to IN PROGRESS."
+model = "gpt-5.4-mini"
+model_reasoning_effort = "medium"
 developer_instructions = """
 You are the Auto-Ceph intake agent.
 

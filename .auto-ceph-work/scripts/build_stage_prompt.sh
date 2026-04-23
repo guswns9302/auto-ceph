@@ -199,6 +199,7 @@ Mandatory behavior:
 stage: $STAGE
 ticket_id: $ticket_id
 status: passed
+retry_reason: none
 agent_binding: $(basename "$runtime_agent_file" .toml)
 artifacts_updated: $stage_artifact
 jira_stage_note_started: yes

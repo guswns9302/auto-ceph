@@ -7,6 +7,7 @@
 stage: 문제 확인
 ticket_id: CDS-1234
 status: passed
+retry_reason: none
 agent_binding: aceph-ticket-intake
 artifacts_updated: doc/CDS-1234/01_TICKET.md, doc/CDS-1234/02_CONTEXT.md
 jira_stage_note_started: yes
@@ -30,6 +31,9 @@ summary: one-line summary
 - `failed`
 - `needs_retry`
 
+`retry_reason`은 retryable failure의 성격을 메인 세션 orchestration에 전달하는 필드다.
+기본값은 `none`이고, `needs_retry`에서는 반드시 구체값을 사용한다.
+허용 예시는 `verification_unblock`, `quality_retry`, `environment_retry`, `none`이다.
 `agent_binding`은 메인 세션이 직접 spawn한 실제 stage custom agent name과 일치해야 한다.
 메인 세션이 inline으로 수행한 경우는 유효한 결과로 취급하지 않는다.
 `jira_stage_note_started`는 description 본문의 `작업 노트` 섹션에 해당 stage header가 반영됐다는 뜻이어야 한다.
@@ -40,7 +44,9 @@ summary: one-line summary
 코드 리뷰 단계면 `summary`에 핵심 finding 유무와 `approved` 또는 `changes_requested` 판정이 요약되어야 한다.
 `iteration`은 현재 stage 실행 번호가 아니라 현재 loop attempt 번호다.
 같은 loop 안의 stage 진행은 같은 `iteration` 값을 공유해야 한다.
-`iteration`, `loop_decision`, `detected_stage_after_run`, `terminal_reason`은 Ralph loop 제어에 필수다.
+`iteration`, `loop_decision`, `detected_stage_after_run`, `terminal_reason`, `retry_reason`은 Ralph loop 제어에 필수다.
+`needs_retry`이면서 `retry_reason: verification_unblock`이면 현재 티켓 검증을 직접 막는 최소 컴파일/테스트 unblock 수정만 허용한다.
+`needs_retry`이면서 `retry_reason: verification_unblock`인 경우, `summary`에는 실제로 검증을 막은 파일/심볼 또는 오류 묶음을 요약해야 한다.
 인테이크 단계에서 제목에 `[ACW]`가 없으면 `terminal_reason: missing_title_prefix`를 사용한다.
 인테이크 단계에서 intake target이 `[ACW]` + repo 일치로 확정되면, `repo`나 `remote`가 누락되어도 먼저 ticket branch를 준비한 뒤 `terminal_reason: missing_required_inputs`를 사용한다.
 인테이크 단계에서 `repo`는 있지만 현재 프로젝트 루트 디렉터리명과 다르면 `terminal_reason: repo_mismatch`를 사용한다.

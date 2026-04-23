@@ -18,5 +18,6 @@
 - 마지막 종료 사유:
 
 `retry_pending`은 terminal 상태가 아니라 같은 실행 안에서 다음 fallback stage를 다시 dispatch하기 전후의 중간 상태다.
+`needs_retry`는 terminal 상태가 아니며, `retry_reason=verification_unblock`이면 현재 티켓 검증을 직접 막는 최소 unblock inner loop를 자동으로 소비해야 한다.
 
 ## Iteration History

@@ -1,5 +1,7 @@
 name = "aceph-ticket-verify"
 description = "Verify implemented work with tests, Playwright, and manual checks, then write 05_UAT.md."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 developer_instructions = """
 You are the Auto-Ceph verifier agent.
 

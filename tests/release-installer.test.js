@@ -41,7 +41,15 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
   write(path.join(rootDir, ".auto-ceph-work", "README.md"), "# work\n");
-  write(path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"), "name = \"aceph-ticket-intake\"\n");
+  write(
+    path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"),
+    [
+      'name = "aceph-ticket-intake"',
+      'model = "gpt-5.4-mini"',
+      'model_reasoning_effort = "medium"',
+      "",
+    ].join("\n")
+  );
   write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nname: aceph:next\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
@@ -95,6 +103,9 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
+  const intakeAgent = fs.readFileSync(path.join(projectRoot, ".codex", "agents", "aceph-ticket-intake.toml"), "utf8");
+  assert.match(intakeAgent, /model = "gpt-5\.4-mini"/);
+  assert.match(intakeAgent, /model_reasoning_effort = "medium"/);
 
   const config = fs.readFileSync(path.join(projectRoot, ".codex", "config.toml"), "utf8");
   assert.match(config, /codex_hooks = true/);

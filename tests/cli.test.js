@@ -36,7 +36,15 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
   write(path.join(rootDir, ".auto-ceph-work", "README.md"), "# work\n");
-  write(path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"), "name = \"aceph-ticket-intake\"\n");
+  write(
+    path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"),
+    [
+      'name = "aceph-ticket-intake"',
+      'model = "gpt-5.4-mini"',
+      'model_reasoning_effort = "medium"',
+      "",
+    ].join("\n")
+  );
   write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nname: aceph:next\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
@@ -62,6 +70,10 @@ function runShell(command, cwd) {
     cwd,
     encoding: "utf8",
   });
+}
+
+function readRepoFile(relativePath) {
+  return fs.readFileSync(path.join(__dirname, "..", relativePath), "utf8");
 }
 
 test("cli install routes to the installer and uses package version by default", () => {
@@ -750,6 +762,7 @@ test("build_stage_prompt includes current project repo for intake matching", () 
   assert.match(result.stdout, /For intake, treat `\[ACW\]` in the Jira title and `repo == ceph-service-api-[^`]+` as the intake gate\./);
   assert.match(result.stdout, /Treat `retry_pending` as a non-terminal intermediate state\./);
   assert.match(result.stdout, /agent_binding: aceph-ticket-intake/);
+  assert.match(result.stdout, /retry_reason: none/);
   assert.match(result.stdout, /jira_stage_note_started: yes/);
   assert.match(result.stdout, /jira_stage_summary_written: yes/);
   assert.match(result.stdout, /jira_status_transition_applied: unchanged/);
@@ -786,6 +799,7 @@ test("build_stage_prompt includes required result fields for a non-transition st
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /agent_binding: aceph-ticket-code-review/);
+  assert.match(result.stdout, /retry_reason: none/);
   assert.match(result.stdout, /jira_stage_note_started: yes/);
   assert.match(result.stdout, /jira_stage_summary_written: yes/);
   assert.match(result.stdout, /jira_status_transition_applied: unchanged/);
@@ -828,6 +842,7 @@ test("runtime-orchestration stage result example matches the required complete f
   );
 
   assert.match(runtimeOrchestration, /agent_binding: aceph-ticket-plan/);
+  assert.match(runtimeOrchestration, /retry_reason: none/);
   assert.match(runtimeOrchestration, /jira_stage_note_started: yes/);
   assert.match(runtimeOrchestration, /jira_stage_summary_written: yes/);
   assert.match(runtimeOrchestration, /jira_status_transition_applied: unchanged/);
@@ -848,6 +863,7 @@ test("build_stage_prompt example uses field-complete jira_updates_applied wordin
   assert.match(promptBuilder, /jira_stage_summary_written: yes/);
   assert.match(promptBuilder, /jira_status_transition_applied: unchanged/);
   assert.match(promptBuilder, /jira_updates_applied: description_work_note_start=\$stage_note, description_work_note_summary=\$stage_artifact updated/);
+  assert.match(promptBuilder, /retry_reason: none/);
   assert.doesNotMatch(promptBuilder, /jira_updates_applied: note=/);
 });
 
@@ -870,4 +886,114 @@ test("stage workflows require required-field-complete stage results", () => {
     assert.match(contents, /Return a final `<stage_result>` block with all required fields from `stage-result-format\.md`\./);
     assert.doesNotMatch(contents, /- Return `<stage_result>`\./);
   }
+});
+
+test("auto-ceph contracts define verification-unblock retry as minimal inner-loop scope", () => {
+  const skill = fs.readFileSync(
+    path.join(__dirname, "..", ".codex", "skills", "auto-ceph", "SKILL.md"),
+    "utf8"
+  );
+  const executeCommand = fs.readFileSync(
+    path.join(__dirname, "..", ".codex", "commands", "aceph", "execute-ticket.md"),
+    "utf8"
+  );
+  const verifyCommand = fs.readFileSync(
+    path.join(__dirname, "..", ".codex", "commands", "aceph", "verify-ticket.md"),
+    "utf8"
+  );
+  const orchestration = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "workflows", "orchestrate-ticket.md"),
+    "utf8"
+  );
+  const runtimeContract = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "references", "runtime-contract.md"),
+    "utf8"
+  );
+  const stageResult = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "references", "stage-result-format.md"),
+    "utf8"
+  );
+
+  assert.match(skill, /`retry_reason: verification_unblock`/);
+  assert.match(skill, /현재 티켓 검증을 직접 막는 최소 컴파일\/테스트 unblock 수정만 허용/);
+  assert.match(executeCommand, /retry for `retry_reason: verification_unblock`/);
+  assert.match(verifyCommand, /return `needs_retry` with `retry_reason: verification_unblock`/);
+  assert.match(orchestration, /rebuild the `수행` stage prompt with the concrete blocking compile\/test errors/);
+  assert.match(orchestration, /do not ask the user whether to stop, widen scope, or continue/);
+  assert.match(runtimeContract, /unrelated `compileTestJava`/);
+  assert.match(stageResult, /retry_reason/);
+  assert.match(stageResult, /verification_unblock/);
+});
+
+test("auto-ceph contracts no longer treat needs_retry as a terminal git status", () => {
+  const readme = fs.readFileSync(path.join(__dirname, "..", "README.md"), "utf8");
+  const skill = fs.readFileSync(
+    path.join(__dirname, "..", ".codex", "skills", "auto-ceph", "SKILL.md"),
+    "utf8"
+  );
+  const runtimeOrchestration = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "references", "runtime-orchestration.md"),
+    "utf8"
+  );
+  const runtimeContract = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "references", "runtime-contract.md"),
+    "utf8"
+  );
+
+  assert.doesNotMatch(readme, /`needs_retry`: `chore\(auto-ceph\): stop <TICKET-ID>`/);
+  assert.doesNotMatch(skill, /`needs_retry`는 `chore\(auto-ceph\): stop <TICKET-ID>`/);
+  assert.doesNotMatch(runtimeOrchestration, /`needs_retry`: `chore\(auto-ceph\): stop <TICKET-ID>`/);
+  assert.match(runtimeOrchestration, /`needs_retry` 자체로는 terminal git 후처리를 열지 않는다/);
+  assert.match(runtimeContract, /`needs_retry`는 terminal 상태가 아니므로 그 자체로는 티켓 단위 commit\/push 대상이 아니다/);
+});
+
+test("review and plan templates include verification-unblock scope guardrails", () => {
+  const contextTemplate = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "templates", "02_CONTEXT.md"),
+    "utf8"
+  );
+  const planTemplate = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "templates", "03_PLAN.md"),
+    "utf8"
+  );
+  const executionTemplate = fs.readFileSync(
+    path.join(__dirname, "..", ".auto-ceph-work", "templates", "04_EXECUTION.md"),
+    "utf8"
+  );
+
+  assert.match(contextTemplate, /검증 Unblock 예외/);
+  assert.match(contextTemplate, /최소 컴파일\/테스트 unblock 수정만 예외적으로 허용/);
+  assert.match(planTemplate, /검증 Unblock 정책/);
+  assert.match(planTemplate, /unrelated `compileTestJava`/);
+  assert.match(executionTemplate, /verification-unblock 수정/);
+  assert.match(executionTemplate, /unblock 대상 오류/);
+});
+
+test("stage agents pin role-specific model and reasoning defaults", () => {
+  const expectedAgents = {
+    "aceph-ticket-intake.toml": { model: "gpt-5.4-mini", reasoning: "medium" },
+    "aceph-ticket-plan.toml": { model: "gpt-5.4-mini", reasoning: "high" },
+    "aceph-ticket-review.toml": { model: "gpt-5.4-mini", reasoning: "high" },
+    "aceph-ticket-execute.toml": { model: "gpt-5.4", reasoning: "high" },
+    "aceph-ticket-verify.toml": { model: "gpt-5.4", reasoning: "high" },
+    "aceph-ticket-code-review.toml": { model: "gpt-5.4", reasoning: "high" },
+    "aceph-ticket-review-request.toml": { model: "gpt-5.4-mini", reasoning: "low" },
+  };
+
+  for (const [fileName, expected] of Object.entries(expectedAgents)) {
+    const contents = readRepoFile(path.join(".codex", "agents", fileName));
+    assert.match(contents, new RegExp(`model = "${expected.model.replace(/\./g, "\\.")}"`));
+    assert.match(contents, new RegExp(`model_reasoning_effort = "${expected.reasoning}"`));
+    assert.doesNotMatch(contents, /sandbox_mode = /);
+  }
+});
+
+test("agent-facing docs explain pinned stage models without introducing sandbox overrides", () => {
+  const readme = readRepoFile("README.md");
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
+
+  assert.match(readme, /역할별 기본 `model`과 `model_reasoning_effort`가 고정/);
+  assert.match(readme, /`sandbox_mode`는 명시하지 않아 상위 실행 환경 권한 정책을 그대로 따른다/);
+  assert.match(skill, /역할별 기본 `model`과 `model_reasoning_effort`를 사용/);
+  assert.match(skill, /`sandbox_mode`는 명시하지 않아 상위 실행 환경 정책을 상속한다/);
 });

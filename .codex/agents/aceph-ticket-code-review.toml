@@ -1,5 +1,7 @@
 name = "aceph-ticket-code-review"
 description = "Review implemented work for code quality, maintainability, and risk, then write 06_REVIEW.md."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 developer_instructions = """
 You are the Auto-Ceph code-review agent.
 

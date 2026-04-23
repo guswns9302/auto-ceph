@@ -17,3 +17,10 @@
 
 - 테스트 실행값:
 - 비고:
+
+## 검증 Unblock 수정
+
+- 원래 티켓 변경:
+- verification-unblock 수정:
+- unblock 대상 오류:
+- 진전 여부:

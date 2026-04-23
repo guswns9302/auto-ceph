@@ -1,5 +1,7 @@
 name = "aceph-ticket-review"
 description = "Review Jira source against 01_TICKET.md and 02_CONTEXT.md, then lock implementation scope."
+model = "gpt-5.4-mini"
+model_reasoning_effort = "high"
 developer_instructions = """
 You are the Auto-Ceph review agent.
 

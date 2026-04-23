@@ -81,7 +81,7 @@ Auto-Ceph는 고정된 단계 순서로 티켓을 처리한다.
 - `detect_ticket_stage.sh`로 현재 단계를 판정한다.
 - 남은 워크플로를 이어서 진행한다.
 
-모든 stage는 별도 custom agent 세션에서 수행된다. 메인 세션은 stage prompt를 구성하고 해당 stage agent를 직접 spawn하는 orchestration만 담당한다.
+모든 stage는 별도 custom agent 세션에서 수행된다. 메인 세션은 stage prompt를 구성하고 해당 stage agent를 직접 spawn하는 orchestration만 담당한다. 각 stage agent는 `.codex/agents/*.toml`에 역할별 기본 `model`과 `model_reasoning_effort`가 고정되어 있으며, `sandbox_mode`는 명시하지 않아 상위 실행 환경 권한 정책을 그대로 따른다.
 
 ## Retry And Terminal Rules
 
@@ -89,6 +89,7 @@ Auto-Ceph는 Ralph loop 방식으로 동작한다.
 
 - stage 결과가 `blocked`, `failed`, `needs_retry`여도 retryable failure면 같은 실행 안에서 즉시 `fallback_stage`로 재진입한다.
 - `retry_pending`은 terminal 상태가 아니라 다음 fallback stage를 다시 dispatch하기 전후의 중간 상태다.
+- `needs_retry`는 terminal 상태가 아니고, `retry_reason=verification_unblock`이면 현재 티켓 검증을 직접 막는 최소 unblock 수정만 허용하는 inner loop로 처리한다.
 - 같은 loop 안의 stage 전진은 iteration을 올리지 않는다.
 - 새 loop attempt를 열 때만 iteration을 증가시킨다.
 - 자동 반복 상한은 전체 loop attempt 10회다.
@@ -103,14 +104,13 @@ Auto-Ceph는 Ralph loop 방식으로 동작한다.
 - `ticket_branch_not_prepared`
 - `post_ticket_branch_mismatch`
 
-티켓이 terminal state에 도달하면 메인 세션은 작업 트리 변경 여부를 확인하고, 변경이 있으면 `feature/<TICKET-ID>` 브랜치에서 티켓 단위 커밋과 push를 수행한 뒤 반드시 `dev`로 복귀한다.
+티켓이 terminal state에 도달하면 메인 세션은 작업 트리 변경 여부를 확인하고, 변경이 있으면 `feature/<TICKET-ID>` 브랜치에서 티켓 단위 커밋과 push를 수행한 뒤 반드시 `dev`로 복귀한다. `needs_retry` 자체는 terminal 상태가 아니므로 커밋/푸시 대상이 아니다.
 
 고정 커밋 메시지 규칙:
 
 - `passed`: `feat(auto-ceph): finish <TICKET-ID>`
 - `blocked`: `chore(auto-ceph): block <TICKET-ID>`
 - `failed`: `chore(auto-ceph): fail <TICKET-ID>`
-- `needs_retry`: `chore(auto-ceph): stop <TICKET-ID>`
 
 ## Ticket Docs
 
@@ -118,8 +118,8 @@ Auto-Ceph는 Ralph loop 방식으로 동작한다.
 
 1. `01_TICKET.md`: Jira 원문에서 추출한 실행 입력과 티켓 메타 정보
 2. `02_CONTEXT.md`: 구현 대상과 검증 포인트 정리
-3. `03_PLAN.md`: 브랜치 준비, 구현 task, 테스트 기준
-4. `04_EXECUTION.md`: 실제 수행 내용과 검증 보정 사항
+3. `03_PLAN.md`: 브랜치 준비, 구현 task, 테스트 기준, verification-unblock 정책
+4. `04_EXECUTION.md`: 실제 수행 내용, 검증 보정 사항, verification-unblock 수정 기록
 5. `05_UAT.md`: 테스트 결과와 최종 판단
 6. `06_REVIEW.md`: 코드 리뷰 결과와 승인 여부
 7. `07_SUMMARY.md`: 리뷰 요청용 최종 요약

@@ -1,5 +1,7 @@
 name = "aceph-ticket-execute"
 description = "Execute 03_PLAN.md on the prepared ticket branch and log implementation work into 04_EXECUTION.md."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 developer_instructions = """
 You are the Auto-Ceph executor agent.
 

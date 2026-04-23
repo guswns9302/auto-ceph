@@ -34,6 +34,7 @@ Ticket ID: optional in `$ARGUMENTS`
 - Treat `wait_agent` timeout or an empty `statuses={}` result as a non-terminal polling outcome only.
 - If a spawned stage agent is still pending or running, do not emit `final_answer`, do not mark the run complete, and keep tracking the same agent until a terminal subagent status arrives.
 - Treat `retry_pending` as a non-terminal intermediate state and immediately consume it by spawning `fallback_stage` again in this same execution when the failure is retryable and the loop limit allows it.
+- If the retry result is `needs_retry` with `retry_reason: verification_unblock`, rebuild the fallback prompt with the concrete blocking compile/test errors and a strict minimum-unblock-only scope.
 - After a ticket reaches a terminal state, if the worktree changed, create a terminal ticket commit only on the prepared ticket branch and push it using the current branch upstream first, then ticket `remote` + current ticket branch `feature/<TICKET-ID>` as fallback.
 - After each terminal ticket, always return to `dev` before selecting or starting the next ticket.
 - Keep stage work out of the main session. All stage mutations must happen inside the spawned stage agent.
@@ -50,10 +51,11 @@ If the host runtime cannot spawn the selected stage agent directly from the main
 After spawning a stage agent, keep waiting or re-waiting on that same agent id until it reaches a terminal subagent status. A `wait_agent` timeout is not a stage result and not a stop condition.
 Reject any stage result that is missing Jira start-note or Jira summary-note evidence.
 Reject any stage result that is missing the required Jira status transition evidence for that stage.
-Reject any stage result that omits `agent_binding`, `iteration`, `loop_decision`, `detected_stage_after_run`, or `terminal_reason`.
+Reject any stage result that omits `agent_binding`, `iteration`, `loop_decision`, `detected_stage_after_run`, `terminal_reason`, or `retry_reason`.
 Reject any stage result whose `agent_binding` does not match the selected stage agent.
 Do not auto-retry non-retryable terminal reasons: `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`.
 When the stage result is retryable, do not stop and wait for another user invocation. Record the retry state and spawn `fallback_stage` again in this same run until the ticket reaches a terminal state or the loop limit is exhausted.
+Do not ask the user whether to stop or widen scope for a retryable verification-unblock failure. Consume that inner loop automatically in the current run.
 When a ticket loop reaches a terminal state, perform ticket-level git post-processing before exiting:
 - If `git status --short` is empty, skip commit/push.
 - If the current checkout branch is not `feature/<TICKET-ID>`, stop immediately with `post_ticket_branch_mismatch`.
