@@ -12,9 +12,9 @@
 10. If the retry is `needs_retry` with `retry_reason=verification_unblock`, rebuild the `수행` stage prompt with the concrete blocking compile/test errors and an explicit restriction to minimal unblock fixes only.
 11. If the retry is `needs_retry` with `retry_reason=verification_unblock`, do not ask the user whether to stop, widen scope, or continue. The current run must consume that inner loop automatically.
 12. If the same verification-unblock error set repeats without reduction, treat it as no progress and stop as a blocking loop failure instead of spinning indefinitely.
-13. When the ticket reaches a terminal state, run ticket-level git post-processing: detect worktree changes, commit with the fixed message rule when needed, and push to the current branch upstream.
-14. After ticket-level git post-processing, checkout `dev` before considering the next ticket.
+13. When the ticket reaches a terminal state, do not run ticket-level commit or push in the main session.
+14. After the terminal stage succeeds, return to `dev` only through the canonical helper `.auto-ceph-work/scripts/return_to_dev_branch.sh` before considering the next ticket.
 15. In no-argument mode, continue with the next ticket from the startup snapshot until the snapshot is exhausted.
-16. If git post-processing or `dev` checkout fails, stop the overall run.
+16. If `dev` checkout fails, stop the overall run.
 17. Stop when the startup snapshot is exhausted or a system failure occurs.
 18. Never emit a terminal answer while any spawned stage agent is still pending or running.

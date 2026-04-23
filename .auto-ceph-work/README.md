@@ -39,6 +39,8 @@
 - canonical agent spec은 `.codex/agents/*.toml`에 둔다.
 - `PreToolUse` hook은 canonical flow를 대체하지 않고 advisory safety layer로만 동작한다.
 - `.auto-ceph-work/scripts/prepare_ticket_branch.sh`는 intake 대상 티켓의 canonical branch preparation helper다.
+- `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh`는 review-request 단계의 canonical non-MR git helper다.
+- `.auto-ceph-work/scripts/return_to_dev_branch.sh`는 main orchestrator terminal cleanup helper다.
 
 ## Project Activation
 
@@ -72,6 +74,7 @@
 - stage별 Jira 작업 노트는 comment가 아니라 issue description 본문의 `### 작업 노트` 섹션을 수정해서 남긴다.
 - 작업 노트 summary는 산출물 경로만 적는 짧은 bullet이 아니라 stage 산출물의 고정 섹션 발췌를 포함한다.
 - `리뷰 요청` 단계에서는 `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` helper로 MR을 조회 또는 생성하고, `07_SUMMARY.md`의 `## Merge Request` 섹션을 single source of truth로 유지한다.
+- 메인 세션은 commit/push를 수행하지 않고, `리뷰 요청` 단계가 `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh`와 MR helper를 통해 ticket branch commit/push와 MR open을 함께 소유한다.
 - `리뷰 요청` 단계에서는 issue description top-level `### 루프 히스토리` 섹션을 `08_LOOP.md` 전문으로 동기화한다.
 - stage 시작 기록과 stage 요약 기록은 같은 stage 블록 안에서 누적/교체한다.
 - 다른 description 섹션(`프로젝트`, `문제점`, `개선 방향`)은 보존해야 한다.

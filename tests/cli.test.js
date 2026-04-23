@@ -36,6 +36,8 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"), "#!/usr/bin/env bash\n");
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "return_to_dev_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"), '"use strict";\n');
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"), "console.log('prompt');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
@@ -403,6 +405,103 @@ test("prepare_ticket_branch creates and checks out the canonical ticket branch f
   result = runShell("git branch --show-current", rootDir);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout.trim(), "feature/CDS-2167");
+});
+
+test("commit_and_push_ticket_branch helper commits tracked changes and pushes to fallback remote", () => {
+  const rootDir = makeTempDir("ceph-service-api-");
+  const remoteDir = makeTempDir("ceph-service-api-remote-");
+
+  let result = runShell("git init --bare", remoteDir);
+  assert.equal(result.status, 0, result.stderr);
+  result = runShell("git init -b dev && git config user.name tester && git config user.email tester@example.com && echo base > README.md && git add README.md && git commit -m init", rootDir);
+  assert.equal(result.status, 0, result.stderr);
+  result = runShell(`git remote add origin "${remoteDir}" && git push -u origin dev`, rootDir);
+  assert.equal(result.status, 0, result.stderr);
+  result = runShell("git checkout -b feature/CDS-3001 && echo next >> README.md", rootDir);
+  assert.equal(result.status, 0, result.stderr);
+
+  result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"),
+    ["CDS-3001", "origin"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^commit_performed='yes'$/m);
+  assert.match(result.stdout, /^push_target='origin\/feature\/CDS-3001'$/m);
+});
+
+test("commit_and_push_ticket_branch helper supports clean push-only and rejects branch mismatch", () => {
+  const rootDir = makeTempDir("ceph-service-api-");
+  const remoteDir = makeTempDir("ceph-service-api-remote-");
+
+  let result = runShell("git init --bare", remoteDir);
+  assert.equal(result.status, 0, result.stderr);
+  result = runShell("git init -b dev && git config user.name tester && git config user.email tester@example.com && echo base > README.md && git add README.md && git commit -m init", rootDir);
+  assert.equal(result.status, 0, result.stderr);
+  result = runShell(`git remote add origin "${remoteDir}" && git push -u origin dev`, rootDir);
+  assert.equal(result.status, 0, result.stderr);
+  result = runShell("git checkout -b feature/CDS-3002 && git push -u origin feature/CDS-3002", rootDir);
+  assert.equal(result.status, 0, result.stderr);
+
+  result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"),
+    ["CDS-3002", "origin"],
+    rootDir
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^commit_performed='no'$/m);
+  assert.match(result.stdout, /^push_target='upstream'$/m);
+
+  result = runShell("git checkout dev", rootDir);
+  assert.equal(result.status, 0, result.stderr);
+  result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"),
+    ["CDS-3002", "origin"],
+    rootDir
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /post_ticket_branch_mismatch/);
+});
+
+test("commit_and_push_ticket_branch helper fails when fallback remote is invalid", () => {
+  const rootDir = makeTempDir("ceph-service-api-");
+  let result = runShell("git init -b dev && git config user.name tester && git config user.email tester@example.com && echo base > README.md && git add README.md && git commit -m init && git checkout -b feature/CDS-3003 && echo next >> README.md", rootDir);
+  assert.equal(result.status, 0, result.stderr);
+
+  result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"),
+    ["CDS-3003", "missing-remote"],
+    rootDir
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /remote not found: missing-remote/);
+});
+
+test("return_to_dev_branch helper checks out dev and fails when missing", () => {
+  const rootDir = makeTempDir("ceph-service-api-");
+  let result = runShell("git init -b dev && git config user.name tester && git config user.email tester@example.com && echo base > README.md && git add README.md && git commit -m init && git checkout -b feature/CDS-3004", rootDir);
+  assert.equal(result.status, 0, result.stderr);
+
+  result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "return_to_dev_branch.sh"),
+    [],
+    rootDir
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^current_branch='dev'$/m);
+
+  const missingRoot = makeTempDir("ceph-service-api-");
+  result = runShell("git init -b main && git config user.name tester && git config user.email tester@example.com && echo base > README.md && git add README.md && git commit -m init", missingRoot);
+  assert.equal(result.status, 0, result.stderr);
+  result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "return_to_dev_branch.sh"),
+    [],
+    missingRoot
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /dev branch not found/);
 });
 
 test("detect_ticket_stage stays at intake when remote is missing", () => {
@@ -1314,8 +1413,8 @@ test("auto-ceph contracts no longer treat needs_retry as a terminal git status",
   assert.doesNotMatch(readme, /`needs_retry`: `chore\(auto-ceph\): stop <TICKET-ID>`/);
   assert.doesNotMatch(skill, /`needs_retry`는 `chore\(auto-ceph\): stop <TICKET-ID>`/);
   assert.doesNotMatch(runtimeOrchestration, /`needs_retry`: `chore\(auto-ceph\): stop <TICKET-ID>`/);
-  assert.match(runtimeOrchestration, /`needs_retry` 자체로는 terminal git 후처리를 열지 않는다/);
-  assert.match(runtimeContract, /`needs_retry`는 terminal 상태가 아니므로 그 자체로는 티켓 단위 commit\/push 대상이 아니다/);
+  assert.match(runtimeOrchestration, /`needs_retry` 자체로는 review-request stage git 후처리를 열지 않는다/);
+  assert.match(runtimeContract, /`needs_retry`는 terminal 상태가 아니므로 그 자체로는 stage 내부 commit\/push 대상이 아니다/);
 });
 
 test("jira status contracts pin each stage to an explicit target state", () => {
@@ -1350,9 +1449,10 @@ test("jira sync contracts require stage excerpts and review-request loop-history
   assert.match(jiraSync, /### 루프 히스토리/);
   assert.match(runtimeContract, /작업 노트.*stage 산출물의 고정 섹션 발췌/);
   assert.match(runtimeContract, /canonical helper 기반 MR 생성 또는 재사용/);
-  assert.match(runtimeContract, /08_LOOP\.md.*루프 히스토리.*동기화/);
+  assert.match(runtimeContract, /Jira description 최종 동기화/);
+  assert.match(runtimeContract, /08_LOOP\.md.*루프 히스토리.*섹션 반영/);
   assert.match(skill, /`08_LOOP\.md` 전문을 Jira description top-level `### 루프 히스토리` 섹션에 동기화/);
-  assert.match(workflow, /Sync Jira description `### 루프 히스토리` to the full contents of `08_LOOP\.md`/);
+  assert.match(workflow, /Final-sync Jira description/);
 });
 
 test("review-request assets and contracts require glab merge request handling", () => {
@@ -1374,9 +1474,28 @@ test("review-request assets and contracts require glab merge request handling", 
   assert.match(command, /canonical helper `.auto-ceph-work\/scripts\/create_or_reuse_merge_request\.js`/);
   assert.match(agent, /Use `.auto-ceph-work\/scripts\/create_or_reuse_merge_request\.js` as the canonical merge-request path/);
   assert.match(promptBuilder, /create_or_reuse_merge_request\.js/);
+  assert.match(workflow, /Commit the current ticket branch changes/);
+  assert.match(workflow, /Final-sync Jira description/);
+  assert.match(command, /This stage owns ticket-level commit and push before merge-request work/);
+  assert.match(command, /final Jira description sync for both the stage summary note and top-level loop-history section/);
+  assert.match(agent, /Own ticket-level git post-processing in this stage/);
   assert.match(helper, /mr",\s+"list"/);
   assert.match(helper, /mr",\s+"create"/);
-  assert.match(stageResult, /MR 생성 또는 재사용 결과와 핵심 URL/);
+  assert.match(stageResult, /commit\/push 여부, MR 생성 또는 재사용 결과, 핵심 URL/);
+});
+
+test("main orchestration delegates commit and push to review-request stage", () => {
+  const nextCommand = readRepoFile(path.join(".codex", "commands", "aceph", "next.md"));
+  const orchestration = readRepoFile(path.join(".auto-ceph-work", "workflows", "orchestrate-ticket.md"));
+  const runtimeContract = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-contract.md"));
+  const runtimeOrchestration = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-orchestration.md"));
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
+
+  assert.match(nextCommand, /do not perform ticket-level commit or push in the main session/);
+  assert.match(orchestration, /do not run ticket-level commit or push in the main session/);
+  assert.match(runtimeContract, /메인 세션은 티켓 단위 `git commit`과 `git push`를 수행하지 않는다/);
+  assert.match(runtimeOrchestration, /메인 세션은 티켓 loop terminal 시 commit\/push를 수행하지 않는다/);
+  assert.match(skill, /ticket 단위 `git commit`과 `git push`는 `리뷰 요청` stage가 `\.auto-ceph-work\/scripts\/commit_and_push_ticket_branch\.sh`를 통해 수행한다/);
 });
 
 test("auto-ceph skill defines review-request completion as a helper-backed exception", () => {
@@ -1384,12 +1503,38 @@ test("auto-ceph skill defines review-request completion as a helper-backed excep
   const detector = readRepoFile(path.join(".auto-ceph-work", "scripts", "detect_ticket_stage.sh"));
   const workflow = readRepoFile(path.join(".auto-ceph-work", "references", "workflow.md"));
   const runtimeContract = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-contract.md"));
+  const runtimeOrchestration = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-orchestration.md"));
+  const reviewRequestAgent = readRepoFile(path.join(".codex", "agents", "aceph-ticket-review-request.toml"));
 
   assert.match(skill, /일반 stage 완료 조건은 `Jira 시작 기록 -> 산출물 생성\/갱신 -> Jira 요약 기록`/);
-  assert.match(skill, /`리뷰 요청` stage 완료 조건은 `Jira 시작 기록 -> 07_SUMMARY\.md 갱신 -> MR helper 성공 -> Jira 요약 기록 -> 08_LOOP\.md 동기화`/);
+  assert.match(skill, /`리뷰 요청` stage 완료 조건은 `Jira 시작 기록 -> 07_SUMMARY\.md 기본 요약 작성 -> ticket commit -> push -> MR helper 성공 -> 07_SUMMARY\.md MR 메타 반영 -> Jira description 최종 동기화`/);
   assert.match(workflow, /`07_SUMMARY\.md`가 미완료거나 MR 메타가 비어 있으면 `리뷰 요청`/);
-  assert.match(runtimeContract, /`리뷰 요청` 단계는 `07_SUMMARY\.md` 기반 작업 노트 갱신, canonical helper 기반 MR 생성 또는 재사용/);
+  assert.match(runtimeContract, /`리뷰 요청` 단계는 `07_SUMMARY\.md` 기본 요약 작성, ticket branch commit, push, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY\.md` 반영, Jira description 최종 동기화까지 끝나야 완료다/);
+  assert.match(runtimeOrchestration, /`리뷰 요청` 완료는 `07_SUMMARY\.md` 기본 요약 작성, ticket commit, push, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY\.md` 반영, Jira description 최종 동기화를 모두 포함한다/);
+  assert.match(reviewRequestAgent, /description = "Finalize 07_SUMMARY\.md, commit\/push the ticket branch, and hand off the merge request\."/
+  );
   assert.match(detector, /for required_key in "상태" "제목" "URL" "source" "target"/);
+});
+
+test("auto-ceph contracts canonicalize non-MR git work through helper scripts", () => {
+  const reviewRequestCommand = readRepoFile(path.join(".codex", "commands", "aceph", "review-request-ticket.md"));
+  const nextCommand = readRepoFile(path.join(".codex", "commands", "aceph", "next.md"));
+  const reviewRequestWorkflow = readRepoFile(path.join(".auto-ceph-work", "workflows", "review-request-ticket.md"));
+  const orchestration = readRepoFile(path.join(".auto-ceph-work", "workflows", "orchestrate-ticket.md"));
+  const runtimeContract = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-contract.md"));
+  const workflow = readRepoFile(path.join(".auto-ceph-work", "references", "workflow.md"));
+  const promptBuilder = readRepoFile(path.join(".auto-ceph-work", "scripts", "build_stage_prompt.sh"));
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
+
+  assert.match(reviewRequestCommand, /`\.auto-ceph-work\/scripts\/commit_and_push_ticket_branch\.sh`/);
+  assert.match(reviewRequestWorkflow, /Use the canonical helper `\.auto-ceph-work\/scripts\/commit_and_push_ticket_branch\.sh`/);
+  assert.match(nextCommand, /`\.auto-ceph-work\/scripts\/return_to_dev_branch\.sh`/);
+  assert.match(orchestration, /`\.auto-ceph-work\/scripts\/return_to_dev_branch\.sh`/);
+  assert.match(runtimeContract, /`\.auto-ceph-work\/scripts\/return_to_dev_branch\.sh`/);
+  assert.match(runtimeContract, /`\.auto-ceph-work\/scripts\/commit_and_push_ticket_branch\.sh`/);
+  assert.match(workflow, /`\.auto-ceph-work\/scripts\/commit_and_push_ticket_branch\.sh` canonical helper/);
+  assert.match(promptBuilder, /commit_and_push_ticket_branch\.sh/);
+  assert.match(skill, /`\.auto-ceph-work\/scripts\/commit_and_push_ticket_branch\.sh` canonical helper만 사용한다/);
 });
 
 test("build_stage_prompt reflects stage-specific jira target states", () => {

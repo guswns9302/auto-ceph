@@ -46,7 +46,7 @@ Jira description 어디에 있든 아래 2개가 추출 가능해야 한다.
   - 예: `remote-ceph-admin`, `remote-ceph-api`
   - 현재 프로젝트 루트 디렉터리명과 일치해야 한다
 - `remote`
-  - terminal git 후처리에서 사용할 git remote 이름
+  - `리뷰 요청` 단계의 push fallback에서 사용할 git remote 이름
   - 현재 브랜치 upstream이 없을 때 fallback push 대상이 된다
 - 실제 작업 브랜치
   - Jira에서 받지 않는다

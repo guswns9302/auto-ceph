@@ -40,7 +40,7 @@
 1. 작업 시작 전에 Atlassian MCP의 `jira_get_issue`로 현재 description을 읽고, Jira issue description 본문의 `### 작업 노트` 섹션에 현재 stage를 먼저 기록한 뒤 `jira_update_issue`로 description 전체를 갱신한다.
 2. 현재 stage의 산출물을 만들고 필요한 파일과 상태를 갱신한다.
 3. 산출물 작성이 끝난 뒤 Atlassian MCP로 같은 description 본문의 `### 작업 노트` 섹션에서 해당 stage 블록을 최신 산출물 발췌 기반 요약으로 갱신한다.
-4. `리뷰 요청` 단계에서는 위 작업 외에 `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` helper 기반 MR 생성 또는 재사용을 먼저 마치고, description 본문의 `### 루프 히스토리` 섹션도 최신 `08_LOOP.md` 전문으로 전체 교체 동기화한다.
+4. `리뷰 요청` 단계에서는 산출물 기본 요약 작성 뒤 `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh` helper 기반 ticket branch commit/push 와 `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` helper 기반 MR 생성 또는 재사용을 먼저 마치고, helper 결과를 `07_SUMMARY.md`에 반영한 뒤 description 본문의 `#### 리뷰 요청` 블록 요약과 top-level `### 루프 히스토리` 섹션을 한 번의 최종 description sync로 함께 갱신한다.
 
 위 3단계가 모두 끝나야 stage 완료로 본다.
 

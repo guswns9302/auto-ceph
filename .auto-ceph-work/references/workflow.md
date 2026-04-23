@@ -50,13 +50,15 @@
 - retry 시에는 다음 iteration을 연 뒤 그 iteration의 `fallback_stage`를 같은 실행 안에서 바로 소비한다
 - 자동 반복 상한은 전체 loop attempt 10회다
 - `리뷰 요청` 완료가 자동 루프의 기본 종료 지점이다
-- `리뷰 요청` 완료의 의미에는 canonical helper 기반 MR 생성 또는 재사용과 Jira 요약 동기화가 포함된다
+- `리뷰 요청` 완료의 의미에는 `07_SUMMARY.md` 기본 요약 작성, ticket branch `git commit`/`git push`, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY.md` 반영, Jira description 최종 동기화가 포함된다
 - 이후 새 요구나 피드백은 다음 실행에서 Jira 설명/작업 노트를 우선 읽고 새 iteration을 연다
-- 각 티켓 loop 종료 뒤에는 작업 트리 변경이 있을 경우 티켓 단위 `git commit`을 수행해야 한다
-- push는 현재 checkout 브랜치 upstream을 우선 사용하고, upstream이 없으면 티켓의 `remote`와 현재 티켓 브랜치 `feature/<TICKET-ID>`를 fallback으로 사용한다
-- terminal commit/push는 prepared ticket branch `feature/<TICKET-ID>`에서만 허용한다
-- 각 티켓 terminal 뒤에는 반드시 `dev`로 복귀한 뒤 다음 티켓 또는 종료를 결정한다
-- git 후처리가 실패하면 즉시 종료한다
+- `문제 확인` stage 의 branch preparation 은 `.auto-ceph-work/scripts/prepare_ticket_branch.sh` canonical helper만 사용한다
+- `리뷰 요청` stage 의 non-MR git 작업은 `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh` canonical helper만 사용한다
+- review-request git helper 는 현재 checkout 브랜치 upstream을 우선 사용하고, upstream이 없으면 티켓의 `remote`와 현재 티켓 브랜치 `feature/<TICKET-ID>`를 fallback으로 사용한다
+- review-request git helper 는 prepared ticket branch `feature/<TICKET-ID>`에서만 성공해야 한다
+- 각 티켓 terminal 뒤에는 메인 세션이 반드시 `dev`로 복귀한 뒤 다음 티켓 또는 종료를 결정한다
+- 메인 세션의 terminal branch 복귀는 `.auto-ceph-work/scripts/return_to_dev_branch.sh` canonical helper만 사용한다
+- review-request stage git 후처리가 실패하면 즉시 종료한다
 
 ## Branch Policy
 
