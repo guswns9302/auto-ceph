@@ -143,28 +143,84 @@ async function clickOne(selectors, label) {
   await locator.click();
 }
 
-function textLooksCompleted(text) {
-  return /(완료|성공|SUCCESS|SUCCEEDED|COMPLETED|passed)/i.test(text);
+function normalizeText(text) {
+  return String(text || "").replace(/\\s+/g, " ").trim();
 }
 
-function textLooksFailed(text) {
-  return /(실패|오류|ERROR|FAILED|CANCELED|CANCELLED|TIMEOUT)/i.test(text);
+async function getRowActionButton(row) {
+  const button = row.locator("button").filter({ hasText: /^(실행|중지)$/ }).first();
+  await button.waitFor({ state: "visible", timeout: 10000 });
+  return button;
 }
 
-async function waitForPipelineCompletion(row) {
-  const timeoutAt = Date.now() + 20 * 60 * 1000;
+async function getRowActionButtonText(row) {
+  const button = await getRowActionButton(row);
+  return normalizeText(await button.innerText());
+}
+
+async function waitForRowButtonText(row, expectedText, timeoutMs, failureLabel) {
+  const timeoutAt = Date.now() + timeoutMs;
   let lastText = "";
   while (Date.now() < timeoutAt) {
-    lastText = await row.innerText().catch(() => "");
-    if (textLooksFailed(lastText)) {
-      throw new Error("pipeline failed for " + pipelineName + ": " + lastText);
-    }
-    if (textLooksCompleted(lastText)) {
+    lastText = await getRowActionButtonText(row).catch((error) => "error:" + error.message);
+    if (lastText === expectedText) {
       return;
     }
     await page.waitForTimeout(10000);
   }
-  throw new Error("pipeline completion timeout for " + pipelineName + ": " + lastText);
+  throw new Error(failureLabel + " timeout for " + pipelineName + ": last button text=" + lastText);
+}
+
+async function getPipelineHistoryFirstRow() {
+  const heading = page.getByText("파이프라인 실행이력", { exact: true }).first();
+  await heading.waitFor({ state: "visible", timeout: 10000 });
+  const table = page.locator("table").filter({ hasText: "파이프라인 실행이력" }).first();
+  const scopedTable = await table.count() ? table : heading.locator("xpath=following::table[1]");
+  await scopedTable.waitFor({ state: "visible", timeout: 10000 });
+
+  const headerCells = scopedTable.locator("thead tr").first().locator("th,td");
+  const headerCount = await headerCells.count();
+  const headers = [];
+  for (let index = 0; index < headerCount; index += 1) {
+    headers.push(normalizeText(await headerCells.nth(index).innerText()));
+  }
+
+  const statusIndex = headers.findIndex((header) => header === "상태");
+  const logCollectionIndex = headers.findIndex((header) => header === "로그수집여부");
+  if (statusIndex < 0 || logCollectionIndex < 0) {
+    throw new Error("missing pipeline history columns: " + headers.join(","));
+  }
+
+  const firstRow = scopedTable.locator("tbody tr").first();
+  await firstRow.waitFor({ state: "visible", timeout: 10000 });
+  const cells = firstRow.locator("td");
+  return {
+    status: normalizeText(await cells.nth(statusIndex).innerText()),
+    logCollection: normalizeText(await cells.nth(logCollectionIndex).innerText()),
+  };
+}
+
+async function waitForPipelineHistoryCompletion() {
+  const timeoutAt = Date.now() + 30 * 60 * 1000;
+  let lastState = "";
+  while (Date.now() < timeoutAt) {
+    const firstRow = await getPipelineHistoryFirstRow();
+    lastState = "상태=" + firstRow.status + ", 로그수집여부=" + firstRow.logCollection;
+    if (firstRow.status === "실패") {
+      throw new Error("trombone deployment failed for " + pipelineName + ": " + lastState);
+    }
+    if (firstRow.status === "성공" && firstRow.logCollection === "수집") {
+      return;
+    }
+    if (firstRow.status === "성공" && firstRow.logCollection === "미수집") {
+      await page.waitForTimeout(10000);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      continue;
+    }
+    await page.waitForTimeout(10000);
+    await page.reload({ waitUntil: "domcontentloaded" });
+  }
+  throw new Error("pipeline history completion timeout for " + pipelineName + ": " + lastState);
 }
 
 await page.waitForLoadState("domcontentloaded");
@@ -199,7 +255,10 @@ if (!(await runButton.isEnabled())) {
   throw new Error("run button is disabled for " + pipelineName);
 }
 await runButton.click();
-await waitForPipelineCompletion(row);
+await waitForRowButtonText(row, "중지", 60 * 1000, "pipeline start");
+await waitForRowButtonText(row, "실행", 30 * 60 * 1000, "pipeline stop");
+await row.click();
+await waitForPipelineHistoryCompletion();
 }
 EOF
 

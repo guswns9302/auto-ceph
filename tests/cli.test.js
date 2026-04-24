@@ -767,8 +767,16 @@ test("run_trombone_pipeline helper validates config and waits for completion", (
   assert.match(log, /--session acw-autoceph-[0-9]+ run-code --filename /);
   assert.match(log, /async \(page\) =>/);
   assert.match(log, /const pipelineName = pipelinePrefix \+ repo/);
-  assert.match(log, /waitForPipelineCompletion/);
-  assert.match(log, /pipeline completion timeout/);
+  assert.match(log, /waitForRowButtonText\(row, "중지", 60 \* 1000, "pipeline start"\)/);
+  assert.match(log, /waitForRowButtonText\(row, "실행", 30 \* 60 \* 1000, "pipeline stop"\)/);
+  assert.match(log, /await row\.click\(\)/);
+  assert.match(log, /파이프라인 실행이력/);
+  assert.match(log, /로그수집여부/);
+  assert.match(log, /firstRow\.status === "성공" && firstRow\.logCollection === "수집"/);
+  assert.match(log, /firstRow\.status === "성공" && firstRow\.logCollection === "미수집"/);
+  assert.match(log, /page\.reload\(\{ waitUntil: "domcontentloaded" \}\)/);
+  assert.match(log, /trombone deployment failed/);
+  assert.match(log, /pipeline history completion timeout/);
   assert.doesNotMatch(log, /wldhel11@#/);
 });
 
@@ -2225,7 +2233,15 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(skill, /MR approve 및 dev merge를 순차 처리한다/);
   assert.match(skill, /모든 대상 티켓의 MR batch가 성공적으로 끝난 뒤 한 번만 수행한다/);
   assert.match(skill, /Jira 상태가 `REVIEW`로 전이되고 MR batch까지 성공한 티켓이 하나 이상 있을 때만 호출/);
-  assert.match(skill, /dev 파이프라인 완료 상태 polling/);
+  assert.match(skill, /버튼 텍스트 `중지` 전환 확인/);
+  assert.match(skill, /버튼 텍스트 `실행` 복귀 polling/);
+  assert.match(skill, /상세 `파이프라인 실행이력` 첫 행 확인/);
+  assert.match(skill, /`상태=성공`이고 `로그수집여부=수집`/);
+  assert.match(skill, /`상태=성공`이고 `로그수집여부=미수집`/);
+  assert.match(skill, /상세 페이지를 새로고침하며 10초마다 최대 30분/);
+  assert.match(skill, /`trombone deployment failed`/);
+  assert.match(skill, /`Trombone 배포 실패 \(<pipeline_prefix><repo>\)` 댓글을 추가/);
+  assert.match(skill, /E2E agent 실행과 `DONE` 전이를 절대 수행하지 않는다/);
   assert.match(skill, /`status=completed`와 `pipeline=<pipeline_prefix><repo>`/);
   assert.match(skill, /E2E agent를 실행/);
   assert.match(skill, /`status=passed\|failed`, `ticket_id`, `summary`, `evidence`/);
@@ -2265,7 +2281,11 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(tromboneHelper, /String\.fromCharCode/);
   assert.match(tromboneHelper, /빌드배포/);
   assert.match(tromboneHelper, /파이프라인 관리/);
-  assert.match(tromboneHelper, /waitForPipelineCompletion/);
+  assert.match(tromboneHelper, /waitForRowButtonText\(row, "중지"/);
+  assert.match(tromboneHelper, /waitForRowButtonText\(row, "실행"/);
+  assert.match(tromboneHelper, /getPipelineHistoryFirstRow/);
+  assert.match(tromboneHelper, /로그수집여부/);
+  assert.match(tromboneHelper, /trombone deployment failed/);
   assert.match(tromboneHelper, /status=completed/);
   assert.match(tromboneHelper, /run-code/);
 });
