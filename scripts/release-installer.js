@@ -169,6 +169,22 @@ function validateSourceTree(sourceRoot) {
     "trombone config reference"
   );
   requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "references", "e2e-test-config.md"),
+    "E2E test config reference"
+  );
+  requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "references", "e2e-scenario-template.md"),
+    "E2E scenario template reference"
+  );
+  requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "references", "test-case", "v306.json"),
+    "E2E target test-case reference"
+  );
+  requirePathExists(
+    path.join(sourceRoot, LOCAL_CODEX_AGENT_DIR, "aceph-approval-e2e.toml"),
+    "approval E2E agent"
+  );
+  requirePathExists(
     path.join(sourceRoot, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"),
     "approval merge helper"
   );

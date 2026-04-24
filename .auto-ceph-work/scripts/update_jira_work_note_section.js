@@ -97,17 +97,34 @@ function ensureTopLevelSection(description, header) {
   }
 
   const next = [...lines];
-  if (next.length > 0 && next[next.length - 1] === "") {
-    next.pop();
+  const workNoteRange = getSectionRange(lines, "### 작업 노트");
+  const insertAt = shouldInsertBeforeWorkNotes(header) && workNoteRange ? workNoteRange.start : next.length;
+
+  if (insertAt === next.length) {
+    if (next.length > 0 && next[next.length - 1] === "") {
+      next.pop();
+    }
+    if (next.length > 0 && next[next.length - 1] !== "") {
+      next.push("");
+    }
+    next.push(header, "");
+  } else {
+    const before = next.slice(0, insertAt);
+    const after = next.slice(insertAt);
+    while (before.length > 0 && before[before.length - 1] === "") {
+      before.pop();
+    }
+    next.length = 0;
+    next.push(...before, "", header, "", ...after);
   }
-  if (next.length > 0 && next[next.length - 1] !== "") {
-    next.push("");
-  }
-  next.push(header, "");
   return {
     lines: next.concat([""]),
     range: getSectionRange(next.concat([""]), header),
   };
+}
+
+function shouldInsertBeforeWorkNotes(header) {
+  return header === "### E2E 테스트 시나리오" || header === "### E2E 테스트 결과";
 }
 
 function replaceStageBlock(description, stage, replacementBlock) {

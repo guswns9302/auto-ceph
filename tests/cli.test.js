@@ -35,6 +35,15 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "trombone-config.md"), "repo: auto-ceph\n");
+  write(
+    path.join(rootDir, ".auto-ceph-work", "references", "e2e-test-config.md"),
+    "url: https://example.test/login\nid: tester\npw: secret\n타겟 케이스: .auto-ceph-work/references/test-case/v306.json\n"
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "references", "e2e-scenario-template.md"),
+    "#### 테스트 시나리오\n#### 기대 결과\n#### 확인 범위\n"
+  );
+  write(path.join(rootDir, ".auto-ceph-work", "references", "test-case", "v306.json"), "{\"features\":[]}\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"), "#!/usr/bin/env bash\n");
@@ -51,6 +60,15 @@ function makeSourceTree(rootDir) {
     path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"),
     [
       'name = "aceph-ticket-intake"',
+      'model = "gpt-5.5"',
+      'model_reasoning_effort = "medium"',
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".codex", "agents", "aceph-approval-e2e.toml"),
+    [
+      'name = "aceph-approval-e2e"',
       'model = "gpt-5.5"',
       'model_reasoning_effort = "medium"',
       "",
@@ -697,7 +715,7 @@ test("return_to_dev_branch helper checks out dev and fails when missing", () => 
   assert.match(result.stderr, /dev branch not found/);
 });
 
-test("run_trombone_pipeline helper validates config and invokes playwright wrapper", () => {
+test("run_trombone_pipeline helper validates config and waits for completion", () => {
   const rootDir = makeTempDir("aceph-trombone-run-");
   const configFile = path.join(rootDir, "trombone-config.md");
   const logFile = path.join(rootDir, "pwcli.log");
@@ -741,7 +759,7 @@ test("run_trombone_pipeline helper validates config and invokes playwright wrapp
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^status=triggered$/m);
+  assert.match(result.stdout, /^status=completed$/m);
   assert.match(result.stdout, /^pipeline=dev-sds-3\.0\.6-auto-ceph$/m);
   const log = fs.readFileSync(logFile, "utf8");
   assert.match(log, /run-code --help/);
@@ -749,10 +767,12 @@ test("run_trombone_pipeline helper validates config and invokes playwright wrapp
   assert.match(log, /--session acw-autoceph-[0-9]+ run-code --filename /);
   assert.match(log, /async \(page\) =>/);
   assert.match(log, /const pipelineName = pipelinePrefix \+ repo/);
+  assert.match(log, /waitForPipelineCompletion/);
+  assert.match(log, /pipeline completion timeout/);
   assert.doesNotMatch(log, /wldhel11@#/);
 });
 
-test("run_trombone_pipeline helper fails without triggered status on playwright errors", () => {
+test("run_trombone_pipeline helper fails without completed status on playwright errors", () => {
   const rootDir = makeTempDir("aceph-trombone-pw-fail-");
   const configFile = path.join(rootDir, "trombone-config.md");
   const mockPwcli = path.join(rootDir, "mock-pwcli.sh");
@@ -795,7 +815,7 @@ test("run_trombone_pipeline helper fails without triggered status on playwright 
   );
 
   assert.notEqual(result.status, 0);
-  assert.doesNotMatch(result.stdout, /^status=triggered$/m);
+  assert.doesNotMatch(result.stdout, /^status=completed$/m);
   assert.match(result.stdout, /TimeoutError: failed/);
 });
 
@@ -1416,6 +1436,61 @@ test("update_jira_work_note_section replaces a top-level loop-history section wi
   assert.match(result.stdout, /### 루프 히스토리[\s\S]*# CDS-2135 Loop History[\s\S]*- 현재 iteration: 2/);
   assert.doesNotMatch(result.stdout, /old loop/);
   assert.match(result.stdout, /### 문제점[\s\S]*- 기존 문제/);
+});
+
+test("update_jira_work_note_section places E2E sections before work notes", () => {
+  const rootDir = makeTempDir("aceph-jira-e2e-section-root-");
+  const descriptionPath = path.join(rootDir, "description.md");
+  const blockPath = path.join(rootDir, "e2e.md");
+
+  write(
+    descriptionPath,
+    [
+      "# 제목",
+      "",
+      "### 개선 방향",
+      "",
+      "- 변경 방향",
+      "",
+      "### 작업 노트",
+      "",
+      "#### 리뷰 요청",
+      "",
+      "- 기존 요약",
+      "",
+    ].join("\n")
+  );
+  write(
+    blockPath,
+    [
+      "#### 테스트 시나리오",
+      "1. url로 접속한다.",
+      "2. id/pw로 로그인한다.",
+      "",
+      "#### 기대 결과",
+      "- 성공",
+      "",
+      "#### 확인 범위",
+      "- 포함: 변경 기능",
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), "utf8")
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), descriptionPath, "E2E 테스트 시나리오", "section", blockPath],
+    { cwd: rootDir, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /### 개선 방향[\s\S]*- 변경 방향[\s\S]*### E2E 테스트 시나리오[\s\S]*#### 테스트 시나리오[\s\S]*### 작업 노트[\s\S]*#### 리뷰 요청/
+  );
 });
 
 test("resolve_loop_state script reports iteration metadata and retry limit", () => {
@@ -2100,6 +2175,7 @@ test("stage agents pin role-specific model and reasoning defaults", () => {
     "aceph-ticket-verify.toml": { model: "gpt-5.5", reasoning: "medium" },
     "aceph-ticket-code-review.toml": { model: "gpt-5.5", reasoning: "high" },
     "aceph-ticket-review-request.toml": { model: "gpt-5.5", reasoning: "medium" },
+    "aceph-approval-e2e.toml": { model: "gpt-5.5", reasoning: "medium" },
   };
 
   for (const [fileName, expected] of Object.entries(expectedAgents)) {
@@ -2120,33 +2196,66 @@ test("agent-facing docs explain pinned stage models without introducing sandbox 
   assert.match(skill, /`sandbox_mode`는 명시하지 않아 상위 실행 환경 정책을 상속한다/);
 });
 
-test("auto-ceph-approval skill defines batch MR approval before a single Trombone trigger", () => {
+test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => {
   const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph-approval", "SKILL.md"));
   const tromboneConfig = readRepoFile(path.join(".auto-ceph-work", "references", "trombone-config.md"));
+  const e2eConfig = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-test-config.md"));
+  const e2eTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-scenario-template.md"));
+  const e2eAgent = readRepoFile(path.join(".codex", "agents", "aceph-approval-e2e.toml"));
   const mrHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"));
   const tromboneHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"));
 
   assert.match(skill, /`RESOLVE` 티켓을 찾는다/);
+  assert.match(skill, /`url`, `id`, `pw`, `타겟 케이스` 필드/);
+  assert.match(skill, /`타겟 케이스` 값은 repo root 기준 상대 경로/);
+  assert.match(skill, /파일이 없거나 JSON 파싱이 실패하면 즉시 종료/);
   assert.match(skill, /statusCategory = "In Progress".*넓은 조건으로 대체하지 않는다/);
   assert.match(skill, /제외할 티켓 ID를 한 번만 입력받는다/);
   assert.match(skill, /Jira 상태를 `RESOLVE`에서 `REVIEW`로 변경/);
   assert.match(skill, /1회 재시도/);
   assert.match(skill, /`transition_failed_excluded`/);
-  assert.match(skill, /MR 처리와 Trombone 실행 없이 종료/);
+  assert.match(skill, /MR 처리, Trombone 실행, E2E 실행 없이 종료/);
   assert.match(skill, /07_SUMMARY\.md`가 존재하고 `## Merge Request` 섹션의 `URL`, `source`, `target` 메타가 채워져 있는지 확인/);
   assert.match(skill, /MR 메타 canonical source는 `07_SUMMARY\.md`/);
+  assert.match(skill, /MR approve 전에 각 대상 티켓의 Jira description에 top-level `### E2E 테스트 시나리오` 섹션/);
+  assert.match(skill, /위치는 `### 개선 방향` 다음, `### 작업 노트` 이전/);
+  assert.match(skill, /첫 단계는 항상 E2E config의 `url`로 접속하고 `id`와 `pw`를 입력해 로그인/);
+  assert.match(skill, /`타겟 케이스` JSON의 관련 케이스를 선택 및 조합/);
   assert.match(skill, /Jira 상태가 `REVIEW`로 전이된 티켓에 대해서만 호출/);
   assert.match(skill, /MR approve 및 dev merge를 순차 처리한다/);
   assert.match(skill, /모든 대상 티켓의 MR batch가 성공적으로 끝난 뒤 한 번만 수행한다/);
   assert.match(skill, /Jira 상태가 `REVIEW`로 전이되고 MR batch까지 성공한 티켓이 하나 이상 있을 때만 호출/);
+  assert.match(skill, /dev 파이프라인 완료 상태 polling/);
+  assert.match(skill, /`status=completed`와 `pipeline=<pipeline_prefix><repo>`/);
+  assert.match(skill, /E2E agent를 실행/);
+  assert.match(skill, /`status=passed\|failed`, `ticket_id`, `summary`, `evidence`/);
+  assert.match(skill, /`### E2E 테스트 결과` 섹션/);
+  assert.match(skill, /`E2E 테스트 성공` 댓글/);
+  assert.match(skill, /`E2E 테스트 실패` 댓글/);
+  assert.match(skill, /상태를 `DONE`으로 변경/);
+  assert.match(skill, /DONE`으로 전이하지 않은 채 전체 실행을 실패/);
   assert.match(skill, /`MR approve \/ merge success` 댓글을 추가/);
   assert.match(skill, /`Trombone 파이프라인 실행 완료 \(<pipeline_prefix><repo>\)` 댓글을 추가/);
-  assert.match(skill, /comment API 사용은 approval status notification comment에만 허용되는 예외/);
+  assert.match(skill, /comment API 사용은 approval status notification comment와 E2E result notification comment에만 허용되는 예외/);
   assert.match(skill, /comment write 실패/);
   assert.match(skill, /즉시 전체 실행을 중단/);
-  assert.match(skill, /실행 중에는 helper 파일을 즉석 수정하지 않는다/);
+  assert.match(skill, /helper, config, skill, test-case 파일을 즉석 수정하지 않는다/);
   assert.match(tromboneConfig, /^repo: auto-ceph$/m);
   assert.match(tromboneConfig, /^pipeline_prefix: dev-sds-3\.0\.6-$/m);
+  assert.match(e2eConfig, /^url: /m);
+  assert.match(e2eConfig, /^id: /m);
+  assert.match(e2eConfig, /^pw: /m);
+  assert.match(e2eConfig, /^타겟 케이스: \.auto-ceph-work\/references\/test-case\/v306\.json$/m);
+  assert.match(e2eTemplate, /#### 테스트 시나리오/);
+  assert.match(e2eTemplate, /#### 기대 결과/);
+  assert.match(e2eTemplate, /#### 확인 범위/);
+  assert.match(e2eTemplate, /첫 단계는 항상 E2E config의 `url` 접속과 `id\/pw` 로그인/);
+  assert.match(e2eAgent, /name = "aceph-approval-e2e"/);
+  assert.match(e2eAgent, /model = "gpt-5\.5"/);
+  assert.match(e2eAgent, /model_reasoning_effort = "medium"/);
+  assert.match(e2eAgent, /playwright_cli\.sh/);
+  assert.match(e2eAgent, /target case JSON/);
+  assert.match(e2eAgent, /Do not edit helper, config, skill, or test-case files/);
   assert.match(mrHelper, /mr",\s+"approve"/);
   assert.match(mrHelper, /mr",\s+"merge"/);
   assert.match(mrHelper, /mr",\s+"view"/);
@@ -2156,5 +2265,7 @@ test("auto-ceph-approval skill defines batch MR approval before a single Trombon
   assert.match(tromboneHelper, /String\.fromCharCode/);
   assert.match(tromboneHelper, /빌드배포/);
   assert.match(tromboneHelper, /파이프라인 관리/);
+  assert.match(tromboneHelper, /waitForPipelineCompletion/);
+  assert.match(tromboneHelper, /status=completed/);
   assert.match(tromboneHelper, /run-code/);
 });

@@ -143,6 +143,30 @@ async function clickOne(selectors, label) {
   await locator.click();
 }
 
+function textLooksCompleted(text) {
+  return /(완료|성공|SUCCESS|SUCCEEDED|COMPLETED|passed)/i.test(text);
+}
+
+function textLooksFailed(text) {
+  return /(실패|오류|ERROR|FAILED|CANCELED|CANCELLED|TIMEOUT)/i.test(text);
+}
+
+async function waitForPipelineCompletion(row) {
+  const timeoutAt = Date.now() + 20 * 60 * 1000;
+  let lastText = "";
+  while (Date.now() < timeoutAt) {
+    lastText = await row.innerText().catch(() => "");
+    if (textLooksFailed(lastText)) {
+      throw new Error("pipeline failed for " + pipelineName + ": " + lastText);
+    }
+    if (textLooksCompleted(lastText)) {
+      return;
+    }
+    await page.waitForTimeout(10000);
+  }
+  throw new Error("pipeline completion timeout for " + pipelineName + ": " + lastText);
+}
+
 await page.waitForLoadState("domcontentloaded");
 await fillOne(["input[name='username']", "#username", "input[type='text']", "input[placeholder*='아이디']"], loginId, "username");
 await fillOne(["input[name='password']", "#password", "input[type='password']", "input[placeholder*='비밀번호']"], loginPw, "password");
@@ -175,11 +199,12 @@ if (!(await runButton.isEnabled())) {
   throw new Error("run button is disabled for " + pipelineName);
 }
 await runButton.click();
+await waitForPipelineCompletion(row);
 }
 EOF
 
 run_pwcli open "$LOGIN_URL" >/dev/null
 run_pwcli run-code --filename "$RUN_CODE_FILE"
 
-printf "status=triggered\n"
+printf "status=completed\n"
 printf "pipeline=%s\n" "$PIPELINE_NAME"

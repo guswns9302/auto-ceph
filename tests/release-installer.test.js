@@ -37,6 +37,15 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "trombone-config.md"), "repo: auto-ceph\n");
+  write(
+    path.join(rootDir, ".auto-ceph-work", "references", "e2e-test-config.md"),
+    "url: https://example.test/login\nid: tester\npw: secret\n타겟 케이스: .auto-ceph-work/references/test-case/v306.json\n"
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "references", "e2e-scenario-template.md"),
+    "#### 테스트 시나리오\n#### 기대 결과\n#### 확인 범위\n"
+  );
+  write(path.join(rootDir, ".auto-ceph-work", "references", "test-case", "v306.json"), "{\"features\":[]}\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"), "#!/usr/bin/env bash\n");
@@ -53,6 +62,15 @@ function makeSourceTree(rootDir) {
     path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"),
     [
       'name = "aceph-ticket-intake"',
+      'model = "gpt-5.5"',
+      'model_reasoning_effort = "medium"',
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".codex", "agents", "aceph-approval-e2e.toml"),
+    [
+      'name = "aceph-approval-e2e"',
       'model = "gpt-5.5"',
       'model_reasoning_effort = "medium"',
       "",
@@ -110,6 +128,9 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.ok(fs.existsSync(path.join(projectRoot, INSTALL_META_FILE)));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "project.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-test-config.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-scenario-template.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "test-case", "v306.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh")));
@@ -229,6 +250,7 @@ test("uninstallProject removes managed assets and local config block only", () =
   });
 
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work")), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "test-case", "v306.json")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "agents")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".codex", "commands")), false);
