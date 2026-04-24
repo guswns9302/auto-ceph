@@ -56,6 +56,8 @@
 - `리뷰 요청` stage 의 non-MR git 작업은 `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh` canonical helper만 사용한다
 - review-request git helper 는 현재 checkout 브랜치 upstream을 우선 사용하고, upstream이 없으면 티켓의 `remote`와 현재 티켓 브랜치 `feature/<TICKET-ID>`를 fallback으로 사용한다
 - review-request git helper 는 prepared ticket branch `feature/<TICKET-ID>`에서만 성공해야 한다
+- 각 티켓 처리 시작 시 메인 세션은 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js`로 Jira description `### 작업 노트` 상단의 `티켓 시작 시간`을 보장한다
+- 각 티켓 terminal 시 메인 세션은 같은 helper로 `티켓 종료 시간`을 기록한다
 - 각 티켓 terminal 뒤에는 메인 세션이 반드시 `dev`로 복귀한 뒤 다음 티켓 또는 종료를 결정한다
 - 메인 세션의 terminal branch 복귀는 `.auto-ceph-work/scripts/return_to_dev_branch.sh` canonical helper만 사용한다
 - review-request stage git 후처리가 실패하면 즉시 종료한다

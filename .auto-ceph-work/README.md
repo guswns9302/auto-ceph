@@ -72,6 +72,7 @@
 ## Jira Work Note Policy
 
 - stage별 Jira 작업 노트는 comment가 아니라 issue description 본문의 `### 작업 노트` 섹션을 수정해서 남긴다.
+- 메인 세션은 각 티켓의 `### 작업 노트` 상단에 `티켓 시작 시간`과 `티켓 종료 시간`을 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js`로 관리한다.
 - 작업 노트 summary는 산출물 경로만 적는 짧은 bullet이 아니라 stage 산출물의 고정 섹션 발췌를 포함한다.
 - `리뷰 요청` 단계에서는 `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` helper로 MR을 조회 또는 생성하고, `07_SUMMARY.md`의 `## Merge Request` 섹션을 single source of truth로 유지한다.
 - 메인 세션은 commit/push를 수행하지 않고, `리뷰 요청` 단계가 `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh`와 MR helper를 통해 ticket branch commit/push와 MR open을 함께 소유한다.

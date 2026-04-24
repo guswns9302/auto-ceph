@@ -173,6 +173,10 @@ function validateSourceTree(sourceRoot) {
     "approval merge helper"
   );
   requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js"),
+    "Jira ticket time work-note helper"
+  );
+  requirePathExists(
     path.join(sourceRoot, ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"),
     "trombone pipeline helper"
   );

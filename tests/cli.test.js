@@ -40,6 +40,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "return_to_dev_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"), '"use strict";\n');
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js"), '"use strict";\n');
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"), '"use strict";\n');
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"), "console.log('prompt');\n");
@@ -115,6 +116,7 @@ test("cli install routes to the installer and uses package version by default", 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-approval", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
@@ -1068,6 +1070,9 @@ test("update_jira_work_note_section preserves other description sections and rep
       "",
       "### 작업 노트",
       "",
+      "- 티켓 시작 시간: 2026-04-24 10:00:00 KST",
+      "- 티켓 종료 시간:",
+      "",
       "#### 문제 확인",
       "",
       "- 티켓: CDS-1",
@@ -1105,6 +1110,8 @@ test("update_jira_work_note_section preserves other description sections and rep
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /### 프로젝트\n- repo: ceph-service-api/);
   assert.match(result.stdout, /### 문제점\n- 기존 문제/);
+  assert.match(result.stdout, /- 티켓 시작 시간: 2026-04-24 10:00:00 KST/);
+  assert.match(result.stdout, /- 티켓 종료 시간:/);
   assert.match(result.stdout, /#### 문제 확인[\s\S]*- 티켓: CDS-1/);
   assert.match(result.stdout, /#### 계획[\s\S]*- 티켓: CDS-2135[\s\S]*- 다음 액션: 수행 진행/);
   assert.doesNotMatch(result.stdout, /- 이전 요약/);
@@ -1150,6 +1157,86 @@ test("update_jira_work_note_section creates a work-note section when missing", (
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /### 문제점\n- 기존 문제[\s\S]*### 작업 노트[\s\S]*#### 문제 확인[\s\S]*- 시작/);
+});
+
+test("update_jira_ticket_time_note creates ticket time metadata before stage blocks", () => {
+  const rootDir = makeTempDir("aceph-jira-time-create-root-");
+  const descriptionPath = path.join(rootDir, "description.md");
+
+  write(
+    descriptionPath,
+    [
+      "# 제목",
+      "",
+      "### 작업 노트",
+      "",
+      "#### 문제 확인",
+      "",
+      "- 시작",
+      "",
+      "### 문제점",
+      "- 기존 문제",
+      "",
+    ].join("\n")
+  );
+
+  const result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js"),
+    [descriptionPath, "start", "2026-04-24 10:15:03 KST"],
+    rootDir
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /### 작업 노트\n\n- 티켓 시작 시간: 2026-04-24 10:15:03 KST\n- 티켓 종료 시간:\n\n#### 문제 확인/
+  );
+  assert.match(result.stdout, /### 문제점\n- 기존 문제/);
+});
+
+test("update_jira_ticket_time_note preserves start time and sets terminal end time", () => {
+  const rootDir = makeTempDir("aceph-jira-time-end-root-");
+  const descriptionPath = path.join(rootDir, "description.md");
+
+  write(
+    descriptionPath,
+    [
+      "# 제목",
+      "",
+      "### 작업 노트",
+      "",
+      "- 티켓 시작 시간: 2026-04-24 10:15:03 KST",
+      "- 티켓 종료 시간:",
+      "",
+      "#### 리뷰 요청",
+      "",
+      "- 티켓: CDS-2135",
+      "",
+    ].join("\n")
+  );
+
+  const startResult = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js"),
+    [descriptionPath, "start", "2026-04-24 11:00:00 KST"],
+    rootDir
+  );
+
+  assert.equal(startResult.status, 0, startResult.stderr);
+  assert.match(startResult.stdout, /- 티켓 시작 시간: 2026-04-24 10:15:03 KST/);
+  assert.doesNotMatch(startResult.stdout, /- 티켓 시작 시간: 2026-04-24 11:00:00 KST/);
+
+  write(descriptionPath, startResult.stdout);
+
+  const endResult = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js"),
+    [descriptionPath, "end", "2026-04-24 10:42:11 KST"],
+    rootDir
+  );
+
+  assert.equal(endResult.status, 0, endResult.stderr);
+  assert.match(endResult.stdout, /- 티켓 시작 시간: 2026-04-24 10:15:03 KST/);
+  assert.match(endResult.stdout, /- 티켓 종료 시간: 2026-04-24 10:42:11 KST/);
+  assert.match(endResult.stdout, /#### 리뷰 요청[\s\S]*- 티켓: CDS-2135/);
 });
 
 test("update_jira_work_note_section replaces a top-level loop-history section without touching work notes", () => {
@@ -1674,6 +1761,28 @@ test("jira sync contracts require stage excerpts and review-request loop-history
   assert.match(runtimeContract, /08_LOOP\.md.*루프 히스토리.*섹션 반영/);
   assert.match(skill, /`08_LOOP\.md` 전문을 Jira description top-level `### 루프 히스토리` 섹션에 동기화/);
   assert.match(workflow, /Final-sync Jira description/);
+});
+
+test("auto-ceph contracts record ticket-level start and end times in work notes", () => {
+  const nextCommand = readRepoFile(path.join(".codex", "commands", "aceph", "next.md"));
+  const orchestration = readRepoFile(path.join(".auto-ceph-work", "workflows", "orchestrate-ticket.md"));
+  const runtimeContract = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-contract.md"));
+  const runtimeOrchestration = readRepoFile(path.join(".auto-ceph-work", "references", "runtime-orchestration.md"));
+  const jiraSync = readRepoFile(path.join(".auto-ceph-work", "references", "jira-sync.md"));
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
+  const readme = readRepoFile("README.md");
+
+  assert.match(nextCommand, /update_jira_ticket_time_note\.js <description-file> start/);
+  assert.match(nextCommand, /update_jira_ticket_time_note\.js <description-file> end/);
+  assert.match(orchestration, /티켓 시작 시간/);
+  assert.match(orchestration, /티켓 종료 시간/);
+  assert.match(runtimeContract, /ticket-level 작업 시간 helper는 `\.auto-ceph-work\/scripts\/update_jira_ticket_time_note\.js`/);
+  assert.match(runtimeOrchestration, /티켓 시작 시간/);
+  assert.match(runtimeOrchestration, /티켓 종료 시간/);
+  assert.match(jiraSync, /시간 메타는 `- 티켓 시작 시간: YYYY-MM-DD HH:mm:ss Z`와 `- 티켓 종료 시간:`/);
+  assert.match(skill, /각 티켓 처리 시작 전에 메인 세션/);
+  assert.match(skill, /티켓 terminal 후에는 메인 세션이 최신 Jira description을 읽고/);
+  assert.match(readme, /ticket-level 시간 메타/);
 });
 
 test("review-request assets and contracts require glab merge request handling", () => {

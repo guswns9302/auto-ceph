@@ -42,7 +42,7 @@
 3. 산출물 작성이 끝난 뒤 Atlassian MCP로 같은 description 본문의 `### 작업 노트` 섹션에서 해당 stage 블록을 최신 산출물 발췌 기반 요약으로 갱신한다.
 4. `리뷰 요청` 단계에서는 산출물 기본 요약 작성 뒤 `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh` helper 기반 ticket branch commit/push 와 `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` helper 기반 MR 생성 또는 재사용을 먼저 마치고, helper 결과를 `07_SUMMARY.md`에 반영한 뒤 description 본문의 `#### 리뷰 요청` 블록 요약과 top-level `### 루프 히스토리` 섹션을 한 번의 최종 description sync로 함께 갱신한다.
 
-위 3단계가 모두 끝나야 stage 완료로 본다.
+위 단계가 모두 끝나야 stage 완료로 본다.
 
 상태 전이가 필요한 stage는 위 순서 안에서 각 stage 규칙에 맞는 시점에 Jira 상태 전이까지 마쳐야 한다.
 
@@ -50,6 +50,10 @@
 
 - Jira 작업 노트 쓰기는 comment가 아니라 issue description 본문의 `### 작업 노트` 섹션 수정이어야 한다.
 - `jira_add_comment` 같은 comment 기반 기록은 사용하지 않는다.
+- `### 작업 노트` 섹션의 첫 항목은 ticket-level 시간 메타여야 한다.
+- 시간 메타는 `- 티켓 시작 시간: YYYY-MM-DD HH:mm:ss Z`와 `- 티켓 종료 시간:` 형식으로 둔다.
+- `티켓 시작 시간`은 메인 세션이 ticket 처리 시작 전에 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js`로 기록하고, 기존 값이 있으면 보존한다.
+- `티켓 종료 시간`은 메인 세션이 ticket terminal 시 같은 helper로 기록한다.
 - 시작 기록은 반드시 description의 `### 작업 노트` 섹션 안에서 Markdown `#### <stage>` 헤더 형식으로 남긴다.
 - 시작 기록은 빈 헤더를 두지 말고 최소 `- 시작` bullet을 포함한다.
 - 종료 요약은 같은 stage 헤더 아래 Markdown bullet 목록 형식으로 남긴다.

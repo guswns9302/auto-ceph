@@ -29,6 +29,7 @@ Ticket ID: optional in `$ARGUMENTS`
 - If omitted, process that startup snapshot sequentially in this same execution.
 - Resolve the current stage with `.auto-ceph-work/scripts/detect_ticket_stage.sh`.
 - Resolve the current loop state with `.auto-ceph-work/scripts/resolve_loop_state.sh`.
+- Before processing each ticket, read the Jira issue description and update the top of its `### 작업 노트` section with `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> start`; preserve any existing `티켓 시작 시간`.
 - For each iteration step, build the stage prompt from the canonical stage command, workflow, and agent spec, then spawn the matching stage agent directly from the main session.
 - Spawn stage agents without forking parent-thread chat context. The stage prompt must carry the full required handoff.
 - Treat `wait_agent` timeout or an empty `statuses={}` result as a non-terminal polling outcome only.
@@ -36,6 +37,7 @@ Ticket ID: optional in `$ARGUMENTS`
 - Treat `retry_pending` as a non-terminal intermediate state and immediately consume it by spawning `fallback_stage` again in this same execution when the failure is retryable and the loop limit allows it.
 - If the retry result is `needs_retry` with `retry_reason: verification_unblock`, rebuild the fallback prompt with the concrete blocking compile/test errors and a strict minimum-unblock-only scope.
 - After each terminal ticket, always return to `dev` through `.auto-ceph-work/scripts/return_to_dev_branch.sh` before selecting or starting the next ticket.
+- When a ticket reaches a terminal state, read the latest Jira issue description and update the top of its `### 작업 노트` section with `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> end` before moving to the next ticket or ending the run.
 - Keep stage work out of the main session. All stage mutations must happen inside the spawned stage agent.
 - A stage is not complete unless it wrote both the Jira current-stage note and the Jira stage summary note.
 - A stage that requires Jira status transition is not complete unless the expected Jira state change also succeeded.
@@ -55,6 +57,7 @@ Reject any stage result whose `agent_binding` does not match the selected stage 
 Do not auto-retry non-retryable terminal reasons: `missing_title_prefix`, `missing_required_inputs`, `repo_mismatch`, `ticket_branch_not_prepared`, `post_ticket_branch_mismatch`.
 When the stage result is retryable, do not stop and wait for another user invocation. Record the retry state and spawn `fallback_stage` again in this same run until the ticket reaches a terminal state or the loop limit is exhausted.
 Do not ask the user whether to stop or widen scope for a retryable verification-unblock failure. Consume that inner loop automatically in the current run.
+The main session owns ticket-level `티켓 시작 시간` and `티켓 종료 시간` work-note metadata through `.auto-ceph-work/scripts/update_jira_ticket_time_note.js`; stage agents only own their `#### <stage>` start and summary blocks.
 When a ticket loop reaches a terminal state, do not perform ticket-level commit or push in the main session. That work belongs to the `리뷰 요청` stage through `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh`. The main session may only use `.auto-ceph-work/scripts/return_to_dev_branch.sh` for terminal git cleanup.
 - In no-argument mode, stop only after the startup snapshot is exhausted or a system failure occurs. A retryable failure for the current ticket is not a stop condition by itself.
 </process>
