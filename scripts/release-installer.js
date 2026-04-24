@@ -163,6 +163,19 @@ function validateSourceTree(sourceRoot) {
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_COMMANDS_DIR), "custom command directory");
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph", "SKILL.md"), "user skill");
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph-create", "SKILL.md"), "jira create skill");
+  requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph-approval", "SKILL.md"), "approval skill");
+  requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "references", "trombone-config.md"),
+    "trombone config reference"
+  );
+  requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"),
+    "approval merge helper"
+  );
+  requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"),
+    "trombone pipeline helper"
+  );
   requirePathExists(
     path.join(sourceRoot, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"),
     "prompt guard hook"

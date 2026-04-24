@@ -34,11 +34,14 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "templates", "08_LOOP.md"), "# [TICKET-ID]\n");
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
+  write(path.join(rootDir, ".auto-ceph-work", "references", "trombone-config.md"), "repo: auto-ceph\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "return_to_dev_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"), '"use strict";\n');
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"), '"use strict";\n');
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"), "console.log('prompt');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
@@ -55,6 +58,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nname: aceph:next\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
+  write(path.join(rootDir, ".codex", "skills", "auto-ceph-approval", "SKILL.md"), "# auto ceph approval\n");
 }
 
 function runCli(args) {
@@ -65,9 +69,10 @@ function runCli(args) {
   );
 }
 
-function runScript(scriptPath, args, cwd) {
+function runScript(scriptPath, args, cwd, env) {
   return spawnSync("bash", [scriptPath, ...args], {
     cwd,
+    env: env || process.env,
     encoding: "utf8",
   });
 }
@@ -107,6 +112,7 @@ test("cli install routes to the installer and uses package version by default", 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "commands", "aceph", "next.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-approval", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
@@ -375,6 +381,123 @@ test("create_or_reuse_merge_request helper fails on malformed glab list output",
   assert.match(result.stderr, /failed to parse glab mr list output/);
 });
 
+test("approve_and_merge_review_mr helper approves and merges an open MR", () => {
+  const rootDir = makeTempDir("aceph-mr-approve-");
+  const logFile = path.join(rootDir, "glab.log");
+  const stateFile = path.join(rootDir, "merge-state.txt");
+  const mockGlab = path.join(rootDir, "mock-glab.sh");
+
+  write(
+    mockGlab,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "printf '%s\\n' \"$*\" >> \"$GLAB_LOG\"",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
+      "  cat <<'EOF'",
+      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev"}]',
+      "EOF",
+      "  exit 0",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"approve\" ]; then",
+      "  echo approved",
+      "  exit 0",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"merge\" ]; then",
+      "  if [ ! -f \"$STATE_FILE\" ]; then",
+      "    touch \"$STATE_FILE\"",
+      "    echo not-ready >&2",
+      "    exit 1",
+      "  fi",
+      "  echo merged",
+      "  exit 0",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"view\" ]; then",
+      "  cat <<'EOF'",
+      '{"state":"merged","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev"}',
+      "EOF",
+      "  exit 0",
+      "fi",
+      "echo unexpected >&2",
+      "exit 1",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockGlab, 0o755);
+
+  const result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"),
+    ["CDS-2135", "feature/CDS-2135", "dev"],
+    rootDir,
+    {
+      GLAB_BIN: mockGlab,
+      GLAB_LOG: logFile,
+      STATE_FILE: stateFile,
+      MR_MERGE_TIMEOUT_MS: "50",
+      MR_MERGE_RETRY_INTERVAL_MS: "1",
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^status=merged$/m);
+  assert.match(result.stdout, /^url=https:\/\/gitlab\.example\.com\/group\/proj\/-\/merge_requests\/12$/m);
+  const log = fs.readFileSync(logFile, "utf8");
+  assert.match(log, /^mr approve /m);
+  assert.match(log, /^mr merge /m);
+  assert.match(log, /^mr view /m);
+});
+
+test("approve_and_merge_review_mr helper fails when merge never becomes possible", () => {
+  const rootDir = makeTempDir("aceph-mr-approve-timeout-");
+  const mockGlab = path.join(rootDir, "mock-glab.sh");
+
+  write(
+    mockGlab,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
+      "  cat <<'EOF'",
+      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev"}]',
+      "EOF",
+      "  exit 0",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"approve\" ]; then",
+      "  echo approved",
+      "  exit 0",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"merge\" ]; then",
+      "  echo not-ready >&2",
+      "  exit 1",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"view\" ]; then",
+      "  cat <<'EOF'",
+      '{"state":"opened","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev"}',
+      "EOF",
+      "  exit 0",
+      "fi",
+      "echo unexpected >&2",
+      "exit 1",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockGlab, 0o755);
+
+  const result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"),
+    ["CDS-2135", "feature/CDS-2135", "dev"],
+    rootDir,
+    {
+      GLAB_BIN: mockGlab,
+      MR_MERGE_TIMEOUT_MS: "10",
+      MR_MERGE_RETRY_INTERVAL_MS: "1",
+    }
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /merge request did not become mergeable before timeout/);
+});
+
 test("prepare_ticket_branch creates and checks out the canonical ticket branch from dev", () => {
   const rootDir = makeTempDir("ceph-service-api-");
   const remoteDir = makeTempDir("ceph-service-api-remote-");
@@ -502,6 +625,97 @@ test("return_to_dev_branch helper checks out dev and fails when missing", () => 
   );
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /dev branch not found/);
+});
+
+test("run_trombone_pipeline helper validates config and invokes playwright wrapper", () => {
+  const rootDir = makeTempDir("aceph-trombone-run-");
+  const configFile = path.join(rootDir, "trombone-config.md");
+  const logFile = path.join(rootDir, "pwcli.log");
+  const mockPwcli = path.join(rootDir, "mock-pwcli.sh");
+
+  write(
+    configFile,
+    [
+      "repo: auto-ceph",
+      "pipeline_prefix: dev-sds-3.0.6-",
+      "login_url: http://prd.console.trombone.okestro.cloud/login",
+      "id: hj.yun",
+      "pw: wldhel11@#",
+      "",
+    ].join("\n")
+  );
+  write(
+    mockPwcli,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "printf '%s\\n' \"$*\" >> \"$PWCLI_LOG\"",
+      "exit 0",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockPwcli, 0o755);
+
+  const result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"),
+    ["auto-ceph", configFile],
+    rootDir,
+    { ...process.env, PWCLI_BIN: mockPwcli, PWCLI_LOG: logFile }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^status=triggered$/m);
+  assert.match(result.stdout, /^pipeline=dev-sds-3\.0\.6-auto-ceph$/m);
+  const log = fs.readFileSync(logFile, "utf8");
+  assert.match(log, /open http:\/\/prd\.console\.trombone\.okestro\.cloud\/login/);
+  assert.match(log, /run-code/);
+});
+
+test("run_trombone_pipeline helper fails when config is missing or mismatched", () => {
+  const rootDir = makeTempDir("aceph-trombone-fail-");
+  const configFile = path.join(rootDir, "trombone-config.md");
+  const mockPwcli = path.join(rootDir, "mock-pwcli.sh");
+
+  write(
+    mockPwcli,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "exit 0",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockPwcli, 0o755);
+
+  let result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"),
+    ["auto-ceph", path.join(rootDir, "missing.md")],
+    rootDir,
+    { ...process.env, PWCLI_BIN: mockPwcli }
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /trombone config not found/);
+
+  write(
+    configFile,
+    [
+      "repo: other-repo",
+      "pipeline_prefix: dev-sds-3.0.6-",
+      "login_url: http://prd.console.trombone.okestro.cloud/login",
+      "id: hj.yun",
+      "pw: wldhel11@#",
+      "",
+    ].join("\n")
+  );
+
+  result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"),
+    ["auto-ceph", configFile],
+    rootDir,
+    { ...process.env, PWCLI_BIN: mockPwcli }
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /trombone config repo mismatch/);
 });
 
 test("detect_ticket_stage stays at intake when remote is missing", () => {
@@ -1664,4 +1878,26 @@ test("agent-facing docs explain pinned stage models without introducing sandbox 
   assert.match(readme, /`sandbox_mode`는 명시하지 않아 상위 실행 환경 권한 정책을 그대로 따른다/);
   assert.match(skill, /역할별 기본 `model`과 `model_reasoning_effort`를 사용/);
   assert.match(skill, /`sandbox_mode`는 명시하지 않아 상위 실행 환경 정책을 상속한다/);
+});
+
+test("auto-ceph-approval skill defines batch MR approval before a single Trombone trigger", () => {
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph-approval", "SKILL.md"));
+  const tromboneConfig = readRepoFile(path.join(".auto-ceph-work", "references", "trombone-config.md"));
+  const mrHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"));
+  const tromboneHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"));
+
+  assert.match(skill, /`REVIEW` 티켓을 찾는다/);
+  assert.match(skill, /제외할 티켓 ID를 한 번만 입력받는다/);
+  assert.match(skill, /MR approve 및 dev merge를 순차 처리한다/);
+  assert.match(skill, /모든 대상 티켓의 MR batch가 성공적으로 끝난 뒤 한 번만 수행한다/);
+  assert.match(skill, /즉시 전체 실행을 중단/);
+  assert.match(tromboneConfig, /^repo: auto-ceph$/m);
+  assert.match(tromboneConfig, /^pipeline_prefix: dev-sds-3\.0\.6-$/m);
+  assert.match(mrHelper, /mr",\s+"approve"/);
+  assert.match(mrHelper, /mr",\s+"merge"/);
+  assert.match(mrHelper, /mr",\s+"view"/);
+  assert.match(tromboneHelper, /playwright_cli\.sh/);
+  assert.match(tromboneHelper, /빌드배포/);
+  assert.match(tromboneHelper, /파이프라인 관리/);
+  assert.match(tromboneHelper, /run-code/);
 });

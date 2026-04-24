@@ -35,11 +35,14 @@ function makeSourceTree(rootDir) {
   }, null, 2));
   write(path.join(rootDir, ".auto-ceph-work", "templates", "03_PLAN.md"), "# plan\n");
   write(path.join(rootDir, ".auto-ceph-work", "references", "runtime-contract.md"), "# runtime contract\n");
+  write(path.join(rootDir, ".auto-ceph-work", "references", "trombone-config.md"), "repo: auto-ceph\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "return_to_dev_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"), '"use strict";\n');
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"), '"use strict";\n');
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"), "console.log('prompt');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-workflow-guard.js"), "console.log('workflow');\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "lib", "project-root.js"), "module.exports = {};\n");
@@ -56,6 +59,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".codex", "commands", "aceph", "next.md"), "---\nname: aceph:next\n---\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
+  write(path.join(rootDir, ".codex", "skills", "auto-ceph-approval", "SKILL.md"), "# auto ceph approval\n");
 }
 
 test("ensureCodexHooksFeature adds or upgrades the features block", () => {
@@ -100,12 +104,15 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "commands", "aceph", "next.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-approval", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, INSTALL_META_FILE)));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "project.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "commit_and_push_ticket_branch.sh")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "return_to_dev_branch.sh")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
