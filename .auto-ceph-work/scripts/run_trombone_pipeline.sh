@@ -60,6 +60,9 @@ cleanup() {
   if [ -n "${RUN_CODE_FILE:-}" ] && [ -f "$RUN_CODE_FILE" ]; then
     rm -f "$RUN_CODE_FILE"
   fi
+  if [ -n "${RUN_CODE_DIR:-}" ] && [ -d "$RUN_CODE_DIR" ]; then
+    rmdir "$RUN_CODE_DIR" >/dev/null 2>&1 || true
+  fi
   "$PWCLI_BIN" --session "$PLAYWRIGHT_SESSION" close >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -106,7 +109,11 @@ REPO_JSON="$(printf '%s' "$REPO_NAME" | js_string)"
 PIPELINE_PREFIX_JSON="$(printf '%s' "$PIPELINE_PREFIX" | js_string)"
 LOGIN_ID_JSON="$(printf '%s' "$LOGIN_ID" | js_string)"
 LOGIN_PW_CODES="$(printf '%s' "$LOGIN_PW" | js_char_codes)"
-RUN_CODE_FILE="$(mktemp "${TMPDIR:-/tmp}/auto-ceph-trombone.XXXXXX.js")"
+RUN_CODE_DIR="${AUTO_CEPH_RUN_CODE_DIR:-$PWD/.auto-ceph-work/tmp}"
+mkdir -p "$RUN_CODE_DIR"
+RUN_CODE_FILE="$(mktemp "$RUN_CODE_DIR/auto-ceph-trombone.XXXXXX")"
+mv "$RUN_CODE_FILE" "${RUN_CODE_FILE}.js"
+RUN_CODE_FILE="${RUN_CODE_FILE}.js"
 chmod 600 "$RUN_CODE_FILE"
 
 cat > "$RUN_CODE_FILE" <<EOF

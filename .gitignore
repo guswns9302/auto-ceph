@@ -12,6 +12,7 @@ coverage/
 .nyc_output/
 .cache/
 .playwright-cli/
+.auto-ceph-work/tmp/
 
 .env
 .env.*
