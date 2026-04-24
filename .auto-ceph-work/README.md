@@ -82,10 +82,8 @@
 
 ## Jira Status Policy
 
-- `문제 확인`, `문제 검토`, `계획`은 `IN PROGRESS`
-- `수행`은 시작 시 `IN PROGRESS`, 완료 시 `RESOLVE`
-- `검증`, `코드 리뷰`는 `RESOLVE`
-- `리뷰 요청`은 `REVIEW`
+- `문제 확인`, `문제 검토`, `계획`, `수행`, `검증`, `코드 리뷰`는 `IN PROGRESS`
+- `리뷰 요청`은 `RESOLVE`
 - hook는 상태를 바꾸지 않고 advisory-only로 감시만 한다.
 
 ## Installation

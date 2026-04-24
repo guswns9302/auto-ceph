@@ -11,6 +11,7 @@ yarn-error.log*
 coverage/
 .nyc_output/
 .cache/
+.playwright-cli/
 
 .env
 .env.*

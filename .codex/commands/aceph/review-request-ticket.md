@@ -26,7 +26,7 @@ Ticket ID: required in `$ARGUMENTS`
 
 - Required artifact: `.auto-ceph-work/tickets/<TICKET-ID>/07_SUMMARY.md`
 - Jira target note: `리뷰 요청`
-- Jira target state: `REVIEW`
+- Jira target state: `RESOLVE`
 - Non-MR git post-processing must use the canonical helper `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh`.
 - GitLab merge request work must use the canonical helper `.auto-ceph-work/scripts/create_or_reuse_merge_request.js`.
 - The helper must use `glab` CLI only.
@@ -42,6 +42,6 @@ Ticket ID: required in `$ARGUMENTS`
 
 <process>
 Execute the review-request workflow from @.auto-ceph-work/workflows/review-request-ticket.md.
-The stage is complete only when the Jira start note, the required `REVIEW` guarantee, `07_SUMMARY.md` non-MR summary update, canonical helper-based ticket branch commit/push step, canonical helper-based merge-request create-or-reuse step, merge-request metadata sync into `07_SUMMARY.md`, and the final Jira description sync for both the stage summary note and top-level loop-history section have all succeeded.
+The stage is complete only when the Jira start note, the required `RESOLVE` guarantee, `07_SUMMARY.md` non-MR summary update, canonical helper-based ticket branch commit/push step, canonical helper-based merge-request create-or-reuse step, merge-request metadata sync into `07_SUMMARY.md`, and the final Jira description sync for both the stage summary note and top-level loop-history section have all succeeded.
 Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

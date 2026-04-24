@@ -27,7 +27,7 @@ Ticket ID: required in `$ARGUMENTS`
 
 - Required artifact: `.auto-ceph-work/tickets/<TICKET-ID>/05_UAT.md`
 - Jira target note: `검증`
-- Jira target state: `RESOLVE`
+- Jira target state: `IN PROGRESS`
 - Jira state transition timing: 검증 시작 시
 - Optional helper: one `explorer` for test prioritization or Playwright target discovery
 - Stage must first update the Jira issue description `### 작업 노트` section with `#### 검증` plus `- 시작`, then update artifacts, then replace that same stage block with the Jira stage summary bullet items.
@@ -39,6 +39,6 @@ If the ticket is API-oriented, run tests first and summarize the verification re
 Classify validation failure explicitly. Distinguish product failure, environment failure, and verification-unblock failure.
 If Java/toolchain is healthy, main source compile succeeds, and ticket verification is blocked by unrelated `compileTestJava` or test-source compile errors, return `needs_retry` with `retry_reason: verification_unblock`.
 This stage validates behavior and release readiness only; code quality review belongs to the separate `코드 리뷰` stage.
-The stage is complete only when the Jira start note, the required `RESOLVE` guarantee, artifact updates, and Jira summary note have all succeeded.
+The stage is complete only when the Jira start note, the required `IN PROGRESS` guarantee, artifact updates, and Jira summary note have all succeeded.
 Return a final `<stage_result>` block that includes all required fields from @.auto-ceph-work/references/stage-result-format.md.
 </process>

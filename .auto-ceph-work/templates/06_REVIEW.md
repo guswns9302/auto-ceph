@@ -4,7 +4,7 @@
 
 - 단계: 코드 리뷰
 - 상태: Waiting
-- Jira 상태: RESOLVE
+- Jira 상태: IN PROGRESS
 
 ## 리뷰 대상 범위
 

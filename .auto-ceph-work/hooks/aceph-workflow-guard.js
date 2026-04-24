@@ -76,9 +76,9 @@ const EXPECTED_STAGE_JIRA_STATUS = {
   "문제 검토": "IN PROGRESS",
   "계획": "IN PROGRESS",
   "수행": "IN PROGRESS",
-  "검증": "RESOLVE",
-  "코드 리뷰": "RESOLVE",
-  "리뷰 요청": "REVIEW",
+  "검증": "IN PROGRESS",
+  "코드 리뷰": "IN PROGRESS",
+  "리뷰 요청": "RESOLVE",
 };
 
 function expectedJiraStatusForStage(stage) {

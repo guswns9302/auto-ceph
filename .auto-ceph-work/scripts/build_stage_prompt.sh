@@ -66,9 +66,9 @@ case "$STAGE" in
     stage_note="수행"
     next_stage="검증"
     fallback_stage="계획"
-    stage_target_state="IN PROGRESS -> RESOLVE"
-    stage_transition_timing="시작 시 IN PROGRESS, 완료 시 RESOLVE"
-    stage_result_transition="RESOLVE"
+    stage_target_state="IN PROGRESS"
+    stage_transition_timing="수행 stage 전체에서 IN PROGRESS 유지"
+    stage_result_transition="IN PROGRESS"
     ;;
   "검증")
     stage_command='aceph:verify-ticket'
@@ -76,9 +76,9 @@ case "$STAGE" in
     stage_note="검증"
     next_stage="코드 리뷰"
     fallback_stage="수행"
-    stage_target_state="RESOLVE"
+    stage_target_state="IN PROGRESS"
     stage_transition_timing="검증 stage에서 보장"
-    stage_result_transition="RESOLVE"
+    stage_result_transition="IN PROGRESS"
     if [ "${repo:-}" = "remote-ceph-admin" ]; then
       extra_rules="repo 특례: remote-ceph-admin 이므로 Playwright 검증을 우선 사용하라."
     fi
@@ -89,9 +89,9 @@ case "$STAGE" in
     stage_note="코드 리뷰"
     next_stage="리뷰 요청"
     fallback_stage="수행"
-    stage_target_state="RESOLVE"
+    stage_target_state="IN PROGRESS"
     stage_transition_timing="코드 리뷰 stage에서 보장"
-    stage_result_transition="RESOLVE"
+    stage_result_transition="IN PROGRESS"
     extra_rules="코드 리뷰는 테스트 재실행 단계가 아니라 변경 코드와 diff의 품질, 리스크, 테스트 충분성을 검토하는 단계다."
     ;;
   "리뷰 요청")
@@ -100,9 +100,9 @@ case "$STAGE" in
     stage_note="리뷰 요청"
     next_stage="완료"
     fallback_stage="코드 리뷰"
-    stage_target_state="REVIEW"
+    stage_target_state="RESOLVE"
     stage_transition_timing="리뷰 요청 stage에서 보장"
-    stage_result_transition="REVIEW"
+    stage_result_transition="RESOLVE"
     extra_rules="리뷰 요청 stage에서는 $summary_file 에 \`## Merge Request\` 섹션을 포함해 MR 메타를 단일 source of truth로 유지하라. 이 stage의 non-MR git post-processing 은 $ROOT_DIR/.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh canonical helper로만 처리하라. helper 입력은 ticket id $ticket_id, ticket remote ${remote:-unknown}, commit message \`feat(auto-ceph): finish $ticket_id\` 다. helper 가 branch mismatch 를 보고하면 \`post_ticket_branch_mismatch\` 로 실패하라. MR 관련 작업은 $ROOT_DIR/.auto-ceph-work/scripts/create_or_reuse_merge_request.js canonical helper로만 처리하라. helper 입력은 ticket id, source branch ${ticket_branch:-unknown}, target branch \`dev\`, MR title, summary file path다. helper 출력은 \`status\`, \`title\`, \`url\`, \`source\`, \`target\` 이고, malformed output 이나 helper 실패는 stage 실패다. Jira 작업 노트에는 변경 사항/검증 결과/코드 리뷰 결과/\`Merge Request\` 핵심 메타만 반영하고, $loop_file 전문을 Jira description top-level \`### 루프 히스토리\` 섹션에 동기화하라."
     ;;
   *)

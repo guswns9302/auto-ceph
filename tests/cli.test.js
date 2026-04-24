@@ -399,7 +399,7 @@ test("approve_and_merge_review_mr helper approves and merges an open MR", () => 
       "printf '%s\\n' \"$*\" >> \"$GLAB_LOG\"",
       "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
       "  cat <<'EOF'",
-      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev"}]',
+      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev","state":"opened"}]',
       "EOF",
       "  exit 0",
       "fi",
@@ -446,9 +446,10 @@ test("approve_and_merge_review_mr helper approves and merges an open MR", () => 
   assert.match(result.stdout, /^status=merged$/m);
   assert.match(result.stdout, /^url=https:\/\/gitlab\.example\.com\/group\/proj\/-\/merge_requests\/12$/m);
   const log = fs.readFileSync(logFile, "utf8");
+  assert.match(log, /^mr list --source-branch feature\/CDS-2135 --target-branch dev -F json$/m);
   assert.match(log, /^mr approve /m);
   assert.match(log, /^mr merge /m);
-  assert.match(log, /^mr view /m);
+  assert.match(log, /^mr view .* -F json$/m);
 });
 
 test("approve_and_merge_review_mr helper fails when merge never becomes possible", () => {
@@ -462,7 +463,7 @@ test("approve_and_merge_review_mr helper fails when merge never becomes possible
       "set -euo pipefail",
       "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
       "  cat <<'EOF'",
-      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev"}]',
+      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev","state":"opened"}]',
       "EOF",
       "  exit 0",
       "fi",
@@ -500,6 +501,71 @@ test("approve_and_merge_review_mr helper fails when merge never becomes possible
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /merge request did not become mergeable before timeout/);
+  assert.doesNotMatch(result.stdout, /^status=merged$/m);
+});
+
+test("approve_and_merge_review_mr helper rejects missing open MR and approve failure", () => {
+  const rootDir = makeTempDir("aceph-mr-approve-failure-");
+  const mockGlab = path.join(rootDir, "mock-glab.sh");
+
+  write(
+    mockGlab,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
+      "  cat <<'EOF'",
+      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev","state":"closed"}]',
+      "EOF",
+      "  exit 0",
+      "fi",
+      "echo unexpected >&2",
+      "exit 1",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockGlab, 0o755);
+
+  let result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"),
+    ["CDS-2135", "feature/CDS-2135", "dev"],
+    rootDir,
+    { GLAB_BIN: mockGlab }
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /open merge request not found/);
+  assert.doesNotMatch(result.stdout, /^status=merged$/m);
+
+  write(
+    mockGlab,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"list\" ]; then",
+      "  cat <<'EOF'",
+      '[{"iid":"12","title":"CDS-2135 API 응답 수정","web_url":"https://gitlab.example.com/group/proj/-/merge_requests/12","source_branch":"feature/CDS-2135","target_branch":"dev","state":"opened"}]',
+      "EOF",
+      "  exit 0",
+      "fi",
+      "if [ \"$1\" = \"mr\" ] && [ \"$2\" = \"approve\" ]; then",
+      "  echo approve-failed >&2",
+      "  exit 1",
+      "fi",
+      "echo unexpected >&2",
+      "exit 1",
+      "",
+    ].join("\n")
+  );
+
+  result = runNode(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"),
+    ["CDS-2135", "feature/CDS-2135", "dev"],
+    rootDir,
+    { GLAB_BIN: mockGlab }
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /approve-failed/);
+  assert.doesNotMatch(result.stdout, /^status=merged$/m);
 });
 
 test("prepare_ticket_branch creates and checks out the canonical ticket branch from dev", () => {
@@ -654,6 +720,13 @@ test("run_trombone_pipeline helper validates config and invokes playwright wrapp
       "#!/usr/bin/env bash",
       "set -euo pipefail",
       "printf '%s\\n' \"$*\" >> \"$PWCLI_LOG\"",
+      "if [ \"$1\" = \"run-code\" ] && [ \"${2:-}\" = \"--help\" ]; then",
+      "  echo help",
+      "  exit 0",
+      "fi",
+      "if [ \"${3:-}\" = \"run-code\" ] && [ \"${4:-}\" = \"--filename\" ]; then",
+      "  cat \"$5\" >> \"$PWCLI_LOG\"",
+      "fi",
       "exit 0",
       "",
     ].join("\n")
@@ -671,8 +744,59 @@ test("run_trombone_pipeline helper validates config and invokes playwright wrapp
   assert.match(result.stdout, /^status=triggered$/m);
   assert.match(result.stdout, /^pipeline=dev-sds-3\.0\.6-auto-ceph$/m);
   const log = fs.readFileSync(logFile, "utf8");
-  assert.match(log, /open http:\/\/prd\.console\.trombone\.okestro\.cloud\/login/);
-  assert.match(log, /run-code/);
+  assert.match(log, /run-code --help/);
+  assert.match(log, /--session acw-autoceph-[0-9]+ open http:\/\/prd\.console\.trombone\.okestro\.cloud\/login/);
+  assert.match(log, /--session acw-autoceph-[0-9]+ run-code --filename /);
+  assert.match(log, /async \(page\) =>/);
+  assert.match(log, /const pipelineName = pipelinePrefix \+ repo/);
+  assert.doesNotMatch(log, /wldhel11@#/);
+});
+
+test("run_trombone_pipeline helper fails without triggered status on playwright errors", () => {
+  const rootDir = makeTempDir("aceph-trombone-pw-fail-");
+  const configFile = path.join(rootDir, "trombone-config.md");
+  const mockPwcli = path.join(rootDir, "mock-pwcli.sh");
+
+  write(
+    configFile,
+    [
+      "repo: auto-ceph",
+      "pipeline_prefix: dev-sds-3.0.6-",
+      "login_url: http://prd.console.trombone.okestro.cloud/login",
+      "id: hj.yun",
+      "pw: wldhel11@#",
+      "",
+    ].join("\n")
+  );
+  write(
+    mockPwcli,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      "if [ \"$1\" = \"run-code\" ] && [ \"${2:-}\" = \"--help\" ]; then",
+      "  exit 0",
+      "fi",
+      "if [ \"${3:-}\" = \"run-code\" ]; then",
+      "  echo '### Error'",
+      "  echo 'TimeoutError: failed'",
+      "  exit 0",
+      "fi",
+      "exit 0",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(mockPwcli, 0o755);
+
+  const result = runScript(
+    path.join(__dirname, "..", ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"),
+    ["auto-ceph", configFile],
+    rootDir,
+    { ...process.env, PWCLI_BIN: mockPwcli }
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.doesNotMatch(result.stdout, /^status=triggered$/m);
+  assert.match(result.stdout, /TimeoutError: failed/);
 });
 
 test("run_trombone_pipeline helper fails when config is missing or mismatched", () => {
@@ -1579,7 +1703,7 @@ test("build_stage_prompt includes required result fields for a non-transition st
   assert.match(result.stdout, /retry_reason: none/);
   assert.match(result.stdout, /jira_stage_note_started: yes/);
   assert.match(result.stdout, /jira_stage_summary_written: yes/);
-  assert.match(result.stdout, /jira_status_transition_applied: RESOLVE/);
+  assert.match(result.stdout, /jira_status_transition_applied: IN PROGRESS/);
   assert.match(result.stdout, /fallback_stage: 수행/);
   assert.match(result.stdout, /terminal_reason: none/);
 });
@@ -1734,15 +1858,15 @@ test("jira status contracts pin each stage to an explicit target state", () => {
 
   assert.match(jiraSync, /문제 검토: `IN PROGRESS`/);
   assert.match(jiraSync, /계획: `IN PROGRESS`/);
-  assert.match(jiraSync, /검증: `RESOLVE`/);
-  assert.match(jiraSync, /코드 리뷰: `RESOLVE`/);
-  assert.match(jiraSync, /리뷰 요청: `REVIEW`/);
-  assert.match(runtimeContract, /검증 -> RESOLVE/);
-  assert.match(runtimeContract, /코드 리뷰 -> RESOLVE/);
-  assert.match(runtimeContract, /리뷰 요청 -> REVIEW/);
-  assert.match(skill, /`검증`\/`코드 리뷰`는 `RESOLVE`, `리뷰 요청`은 `REVIEW`/);
-  assert.match(codeReviewCommand, /Jira target state: `RESOLVE`/);
-  assert.match(reviewRequestCommand, /Jira target state: `REVIEW`/);
+  assert.match(jiraSync, /검증: `IN PROGRESS`/);
+  assert.match(jiraSync, /코드 리뷰: `IN PROGRESS`/);
+  assert.match(jiraSync, /리뷰 요청: `RESOLVE`/);
+  assert.match(runtimeContract, /검증 -> IN PROGRESS/);
+  assert.match(runtimeContract, /코드 리뷰 -> IN PROGRESS/);
+  assert.match(runtimeContract, /리뷰 요청 -> RESOLVE/);
+  assert.match(skill, /`문제 확인`\/`문제 검토`\/`계획`\/`수행`\/`검증`\/`코드 리뷰`는 작업 진행 중 상태인 `IN PROGRESS`, `리뷰 요청`은 최종 종료 상태인 `RESOLVE`/);
+  assert.match(codeReviewCommand, /Jira target state: `IN PROGRESS`/);
+  assert.match(reviewRequestCommand, /Jira target state: `RESOLVE`/);
   assert.match(reviewRequestCommand, /### 루프 히스토리/);
 });
 
@@ -1839,7 +1963,7 @@ test("auto-ceph skill defines review-request completion as a helper-backed excep
   assert.match(skill, /일반 stage 완료 조건은 `Jira 시작 기록 -> 산출물 생성\/갱신 -> Jira 요약 기록`/);
   assert.match(skill, /`리뷰 요청` stage 완료 조건은 `Jira 시작 기록 -> 07_SUMMARY\.md 기본 요약 작성 -> ticket commit -> push -> MR helper 성공 -> 07_SUMMARY\.md MR 메타 반영 -> Jira description 최종 동기화`/);
   assert.match(workflow, /`07_SUMMARY\.md`가 미완료거나 MR 메타가 비어 있으면 `리뷰 요청`/);
-  assert.match(runtimeContract, /`리뷰 요청` 단계는 `07_SUMMARY\.md` 기본 요약 작성, ticket branch commit, push, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY\.md` 반영, Jira description 최종 동기화까지 끝나야 완료다/);
+  assert.match(runtimeContract, /`리뷰 요청` 단계는 Jira `RESOLVE` 보장, `07_SUMMARY\.md` 기본 요약 작성, ticket branch commit, push, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY\.md` 반영, Jira description 최종 동기화까지 끝나야 완료다/);
   assert.match(runtimeOrchestration, /`리뷰 요청` 완료는 `07_SUMMARY\.md` 기본 요약 작성, ticket commit, push, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY\.md` 반영, Jira description 최종 동기화를 모두 포함한다/);
   assert.match(reviewRequestAgent, /description = "Finalize 07_SUMMARY\.md, commit\/push the ticket branch, and hand off the merge request\."/
   );
@@ -1892,13 +2016,13 @@ test("build_stage_prompt reflects stage-specific jira target states", () => {
 
   let result = runScript(path.join(rootDir, ".auto-ceph-work", "scripts", "build_stage_prompt.sh"), ["코드 리뷰", "CDS-3000"], rootDir);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Jira target state: RESOLVE/);
-  assert.match(result.stdout, /jira_status_transition_applied: RESOLVE/);
+  assert.match(result.stdout, /Jira target state: IN PROGRESS/);
+  assert.match(result.stdout, /jira_status_transition_applied: IN PROGRESS/);
 
   result = runScript(path.join(rootDir, ".auto-ceph-work", "scripts", "build_stage_prompt.sh"), ["리뷰 요청", "CDS-3000"], rootDir);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Jira target state: REVIEW/);
-  assert.match(result.stdout, /jira_status_transition_applied: REVIEW/);
+  assert.match(result.stdout, /Jira target state: RESOLVE/);
+  assert.match(result.stdout, /jira_status_transition_applied: RESOLVE/);
   assert.match(result.stdout, /glab/);
   assert.match(result.stdout, /## Merge Request/);
   assert.match(result.stdout, /description_merge_request=07_SUMMARY\.md excerpt synced/);
@@ -1925,7 +2049,7 @@ test("workflow guard warns when stage-specific jira status metadata drifts", () 
   write(ticketPath(rootDir, "CDS-3000", "02_CONTEXT.md"), "# CONTEXT\n### 구현 대상\n\n- item\n\n### 검증 포인트\n\n- item\n");
   write(ticketPath(rootDir, "CDS-3000", "03_PLAN.md"), "# PLAN\n- 목표: ok\n- 성공 기준: ok\n기준 브랜치: dev\n");
   write(ticketPath(rootDir, "CDS-3000", "04_EXECUTION.md"), "# EXECUTION\n\n## 메타 정보\n\n- 단계: 수행\n- 상태: Waiting\n- Jira 상태: IN PROGRESS\n\n- 수행 내용: done\n");
-  write(ticketPath(rootDir, "CDS-3000", "05_UAT.md"), "# UAT\n\n## 메타 정보\n\n- 단계: 검증\n- 상태: Waiting\n- Jira 상태: REVIEW\n\n- 최종 판단: ok\n");
+  write(ticketPath(rootDir, "CDS-3000", "05_UAT.md"), "# UAT\n\n## 메타 정보\n\n- 단계: 검증\n- 상태: Waiting\n- Jira 상태: RESOLVE\n\n- 최종 판단: ok\n");
 
   const payload = {
     tool_name: "Edit",
@@ -1942,7 +2066,7 @@ test("workflow guard warns when stage-specific jira status metadata drifts", () 
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /expects Jira status RESOLVE, but 05_UAT\.md declares REVIEW/);
+  assert.match(result.stdout, /expects Jira status IN PROGRESS, but 05_UAT\.md declares RESOLVE/);
 });
 
 test("review and plan templates include verification-unblock scope guardrails", () => {
@@ -2002,17 +2126,34 @@ test("auto-ceph-approval skill defines batch MR approval before a single Trombon
   const mrHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"));
   const tromboneHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"));
 
-  assert.match(skill, /`REVIEW` 티켓을 찾는다/);
+  assert.match(skill, /`RESOLVE` 티켓을 찾는다/);
+  assert.match(skill, /statusCategory = "In Progress".*넓은 조건으로 대체하지 않는다/);
   assert.match(skill, /제외할 티켓 ID를 한 번만 입력받는다/);
+  assert.match(skill, /Jira 상태를 `RESOLVE`에서 `REVIEW`로 변경/);
+  assert.match(skill, /1회 재시도/);
+  assert.match(skill, /`transition_failed_excluded`/);
+  assert.match(skill, /MR 처리와 Trombone 실행 없이 종료/);
+  assert.match(skill, /07_SUMMARY\.md`가 존재하고 `## Merge Request` 섹션의 `URL`, `source`, `target` 메타가 채워져 있는지 확인/);
+  assert.match(skill, /MR 메타 canonical source는 `07_SUMMARY\.md`/);
+  assert.match(skill, /Jira 상태가 `REVIEW`로 전이된 티켓에 대해서만 호출/);
   assert.match(skill, /MR approve 및 dev merge를 순차 처리한다/);
   assert.match(skill, /모든 대상 티켓의 MR batch가 성공적으로 끝난 뒤 한 번만 수행한다/);
+  assert.match(skill, /Jira 상태가 `REVIEW`로 전이되고 MR batch까지 성공한 티켓이 하나 이상 있을 때만 호출/);
+  assert.match(skill, /`MR approve \/ merge success` 댓글을 추가/);
+  assert.match(skill, /`Trombone 파이프라인 실행 완료 \(<pipeline_prefix><repo>\)` 댓글을 추가/);
+  assert.match(skill, /comment API 사용은 approval status notification comment에만 허용되는 예외/);
+  assert.match(skill, /comment write 실패/);
   assert.match(skill, /즉시 전체 실행을 중단/);
+  assert.match(skill, /실행 중에는 helper 파일을 즉석 수정하지 않는다/);
   assert.match(tromboneConfig, /^repo: auto-ceph$/m);
   assert.match(tromboneConfig, /^pipeline_prefix: dev-sds-3\.0\.6-$/m);
   assert.match(mrHelper, /mr",\s+"approve"/);
   assert.match(mrHelper, /mr",\s+"merge"/);
   assert.match(mrHelper, /mr",\s+"view"/);
   assert.match(tromboneHelper, /playwright_cli\.sh/);
+  assert.match(tromboneHelper, /run-code --help/);
+  assert.match(tromboneHelper, /async \(page\) =>/);
+  assert.match(tromboneHelper, /String\.fromCharCode/);
   assert.match(tromboneHelper, /빌드배포/);
   assert.match(tromboneHelper, /파이프라인 관리/);
   assert.match(tromboneHelper, /run-code/);

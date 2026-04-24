@@ -21,7 +21,7 @@ Required behavior:
 - Use `approved` when no blocking finding remains.
 - Use `changes_requested` when a blocking finding exists and keep the fallback stage at 수행.
 - Before any artifact work, read the Jira issue description with Atlassian MCP `jira_get_issue`, then update the description `### 작업 노트` section with `#### 코드 리뷰` plus `- 시작` through `jira_update_issue`.
-- Before code-review work begins, ensure Jira status is `RESOLVE`.
+- Before code-review work begins, ensure Jira status is `IN PROGRESS`.
 - After review artifacts are updated, replace that same description stage block with a short bullet-list stage summary through `jira_update_issue`.
 - Do not use Jira comment APIs for work-note writes.
 - If either Jira description work-note write or the required Jira status guarantee fails, treat the stage as incomplete and do not report success.

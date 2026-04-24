@@ -14,9 +14,9 @@ Read these sources first:
 - .auto-ceph-work/references/stage-result-format.md
 
 Required behavior:
-- Summarize the completed work and record validation, code-review outcomes, and merge-request metadata in `07_SUMMARY.md` while ensuring Jira status is `REVIEW`.
+- Summarize the completed work and record validation, code-review outcomes, and merge-request metadata in `07_SUMMARY.md` while ensuring Jira status is `RESOLVE`.
 - Before any artifact work, read the Jira issue description with Atlassian MCP `jira_get_issue`, then update the description `### 작업 노트` section with `#### 리뷰 요청` plus `- 시작` through `jira_update_issue`.
-- Before final summary work begins, ensure Jira status is `REVIEW`.
+- Before final summary work begins, ensure Jira status is `RESOLVE`.
 - Own ticket-level git post-processing in this stage. The main orchestrator must not commit or push for review-request completion.
 - Treat `.auto-ceph-work/` artifacts as handoff/Jira sync files, not git-tracked branch contents.
 - Use `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh` as the canonical non-MR git path with inputs `<TICKET-ID>`, ticket `remote`, and `feat(auto-ceph): finish <TICKET-ID>`.

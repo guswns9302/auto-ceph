@@ -4,7 +4,7 @@
 
 - 단계: 리뷰 요청
 - 상태: Waiting
-- Jira 상태: REVIEW
+- Jira 상태: RESOLVE
 
 ## 변경 사항
 

@@ -102,9 +102,9 @@ stage별 목표 Jira 상태는 아래와 같이 고정한다.
 - `문제 확인` -> `IN PROGRESS`
 - `문제 검토` -> `IN PROGRESS`
 - `계획` -> `IN PROGRESS`
-- `수행` -> 시작 시 `IN PROGRESS`, 완료 시 `RESOLVE`
-- `검증` -> `RESOLVE`
-- `코드 리뷰` -> `RESOLVE`
-- `리뷰 요청` -> `REVIEW`
+- `수행` -> `IN PROGRESS`
+- `검증` -> `IN PROGRESS`
+- `코드 리뷰` -> `IN PROGRESS`
+- `리뷰 요청` -> `RESOLVE`
 
-`리뷰 요청` 단계에서는 위 status 보장 외에도 먼저 `07_SUMMARY.md`의 non-MR 요약 섹션을 작성하고, `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh` helper로 ticket-level commit/push 를 수행한 뒤 `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` helper로 `feature/<TICKET-ID>` -> `dev` MR을 생성 또는 재사용해야 한다. helper 성공 후에는 `## Merge Request` 섹션을 `07_SUMMARY.md`에 반영하고, 마지막 Jira description 최종 동기화에서 `#### 리뷰 요청` 블록 요약과 top-level `### 루프 히스토리` 섹션을 함께 갱신해야 한다.
+`리뷰 요청` 단계에서는 위 `RESOLVE` status 보장 외에도 먼저 `07_SUMMARY.md`의 non-MR 요약 섹션을 작성하고, `.auto-ceph-work/scripts/commit_and_push_ticket_branch.sh` helper로 ticket-level commit/push 를 수행한 뒤 `.auto-ceph-work/scripts/create_or_reuse_merge_request.js` helper로 `feature/<TICKET-ID>` -> `dev` MR을 생성 또는 재사용해야 한다. helper 성공 후에는 `## Merge Request` 섹션을 `07_SUMMARY.md`에 반영하고, 마지막 Jira description 최종 동기화에서 `#### 리뷰 요청` 블록 요약과 top-level `### 루프 히스토리` 섹션을 함께 갱신해야 한다.

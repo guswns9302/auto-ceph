@@ -1,7 +1,7 @@
 # Review Request Ticket Workflow
 
 - Read `05_UAT.md`, `06_REVIEW.md`, and `04_EXECUTION.md`.
-- Ensure Jira status is `REVIEW`.
+- Ensure Jira status is `RESOLVE`.
 - Write the non-MR handoff summary in `07_SUMMARY.md`.
 - Ensure the current checkout branch is `feature/<TICKET-ID>` before any git post-processing.
 - Commit the current ticket branch changes with the fixed ticket terminal message rule when the worktree changed.

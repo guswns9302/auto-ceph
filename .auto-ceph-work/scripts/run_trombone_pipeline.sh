@@ -10,7 +10,8 @@ REPO_NAME="$1"
 CONFIG_FILE="$2"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 PWCLI_BIN="${PWCLI_BIN:-$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh}"
-PLAYWRIGHT_SESSION="${PLAYWRIGHT_CLI_SESSION:-auto-ceph-approval-$REPO_NAME}"
+SAFE_REPO="$(printf '%s' "$REPO_NAME" | tr -cd '[:alnum:]' | cut -c1-12)"
+PLAYWRIGHT_SESSION="${PLAYWRIGHT_CLI_SESSION:-acw-${SAFE_REPO:-repo}-$$}"
 
 trim() {
   local value="$1"
@@ -29,6 +30,39 @@ read_config_value() {
   fi
   trim "${line#*:}"
 }
+
+js_string() {
+  node -e 'const fs = require("node:fs"); process.stdout.write(JSON.stringify(fs.readFileSync(0, "utf8")));'
+}
+
+js_char_codes() {
+  node -e 'const fs = require("node:fs"); process.stdout.write([...fs.readFileSync(0, "utf8")].map((char) => char.charCodeAt(0)).join(","));'
+}
+
+run_pwcli() {
+  local output
+  local status
+  set +e
+  output="$("$PWCLI_BIN" --session "$PLAYWRIGHT_SESSION" "$@" 2>&1)"
+  status=$?
+  set -e
+  printf '%s\n' "$output"
+  if [ "$status" -ne 0 ]; then
+    return "$status"
+  fi
+  if printf '%s\n' "$output" | grep -q '^### Error'; then
+    return 1
+  fi
+  return 0
+}
+
+cleanup() {
+  if [ -n "${RUN_CODE_FILE:-}" ] && [ -f "$RUN_CODE_FILE" ]; then
+    rm -f "$RUN_CODE_FILE"
+  fi
+  "$PWCLI_BIN" --session "$PLAYWRIGHT_SESSION" close >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
 
 [ -f "$CONFIG_FILE" ] || {
   echo "trombone config not found: $CONFIG_FILE" >&2
@@ -62,14 +96,26 @@ command -v npx >/dev/null 2>&1 || {
   exit 1
 }
 
-PIPELINE_NAME="${PIPELINE_PREFIX}${REPO_NAME}"
+"$PWCLI_BIN" run-code --help >/dev/null 2>&1 || {
+  echo "playwright cli run-code is not available" >&2
+  exit 1
+}
 
-RUN_CODE="$(cat <<'EOF'
-const repo = process.env.TROMBONE_REPO;
-const pipelinePrefix = process.env.TROMBONE_PIPELINE_PREFIX;
-const pipelineName = `${pipelinePrefix}${repo}`;
-const loginId = process.env.TROMBONE_LOGIN_ID;
-const loginPw = process.env.TROMBONE_LOGIN_PW;
+PIPELINE_NAME="${PIPELINE_PREFIX}${REPO_NAME}"
+REPO_JSON="$(printf '%s' "$REPO_NAME" | js_string)"
+PIPELINE_PREFIX_JSON="$(printf '%s' "$PIPELINE_PREFIX" | js_string)"
+LOGIN_ID_JSON="$(printf '%s' "$LOGIN_ID" | js_string)"
+LOGIN_PW_CODES="$(printf '%s' "$LOGIN_PW" | js_char_codes)"
+RUN_CODE_FILE="$(mktemp "${TMPDIR:-/tmp}/auto-ceph-trombone.XXXXXX.js")"
+chmod 600 "$RUN_CODE_FILE"
+
+cat > "$RUN_CODE_FILE" <<EOF
+async (page) => {
+const repo = ${REPO_JSON};
+const pipelinePrefix = ${PIPELINE_PREFIX_JSON};
+const pipelineName = pipelinePrefix + repo;
+const loginId = ${LOGIN_ID_JSON};
+const loginPw = String.fromCharCode(${LOGIN_PW_CODES});
 
 async function firstLocator(selectors) {
   for (const selector of selectors) {
@@ -84,7 +130,7 @@ async function firstLocator(selectors) {
 async function fillOne(selectors, value, label) {
   const locator = await firstLocator(selectors);
   if (!locator) {
-    throw new Error(`missing ${label} input`);
+    throw new Error("missing " + label + " input");
   }
   await locator.fill(value);
 }
@@ -92,7 +138,7 @@ async function fillOne(selectors, value, label) {
 async function clickOne(selectors, label) {
   const locator = await firstLocator(selectors);
   if (!locator) {
-    throw new Error(`missing ${label}`);
+    throw new Error("missing " + label);
   }
   await locator.click();
 }
@@ -101,7 +147,8 @@ await page.waitForLoadState("domcontentloaded");
 await fillOne(["input[name='username']", "#username", "input[type='text']", "input[placeholder*='아이디']"], loginId, "username");
 await fillOne(["input[name='password']", "#password", "input[type='password']", "input[placeholder*='비밀번호']"], loginPw, "password");
 await clickOne(["button[type='submit']", "button:has-text('로그인')", "button:has-text('Login')"], "login button");
-await page.waitForLoadState("networkidle");
+await page.waitForLoadState("domcontentloaded");
+await page.waitForTimeout(3000);
 
 await page.getByText("빌드배포", { exact: true }).click();
 await page.getByText("파이프라인 관리", { exact: true }).click();
@@ -125,18 +172,14 @@ await row.waitFor({ state: "visible", timeout: 10000 });
 const runButton = row.getByRole("button", { name: "실행" }).first();
 await runButton.waitFor({ state: "visible", timeout: 10000 });
 if (!(await runButton.isEnabled())) {
-  throw new Error(`run button is disabled for ${pipelineName}`);
+  throw new Error("run button is disabled for " + pipelineName);
 }
 await runButton.click();
+}
 EOF
-)"
 
-"$PWCLI_BIN" --session "$PLAYWRIGHT_SESSION" open "$LOGIN_URL"
-TROMBONE_REPO="$REPO_NAME" \
-TROMBONE_PIPELINE_PREFIX="$PIPELINE_PREFIX" \
-TROMBONE_LOGIN_ID="$LOGIN_ID" \
-TROMBONE_LOGIN_PW="$LOGIN_PW" \
-"$PWCLI_BIN" --session "$PLAYWRIGHT_SESSION" run-code "$RUN_CODE"
+run_pwcli open "$LOGIN_URL" >/dev/null
+run_pwcli run-code --filename "$RUN_CODE_FILE"
 
 printf "status=triggered\n"
 printf "pipeline=%s\n" "$PIPELINE_NAME"

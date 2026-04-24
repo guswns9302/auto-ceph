@@ -50,14 +50,12 @@ function listOpenMergeRequests(glabBin, source, target) {
   const result = runGlab(glabBin, [
     "mr",
     "list",
-    "--state",
-    "opened",
     "--source-branch",
     source,
     "--target-branch",
     target,
-    "--json",
-    "iid,title,web_url,source_branch,target_branch",
+    "-F",
+    "json",
   ]);
   const parsed = parseJson(result.stdout, "glab mr list output");
   if (!Array.isArray(parsed)) {
@@ -70,7 +68,8 @@ function findMatchingMergeRequest(mergeRequests, source, target) {
   return mergeRequests.find((mergeRequest) => {
     return mergeRequest
       && mergeRequest.source_branch === source
-      && mergeRequest.target_branch === target;
+      && mergeRequest.target_branch === target
+      && mergeRequest.state === "opened";
   });
 }
 
@@ -83,8 +82,8 @@ function readMergeRequest(glabBin, mergeRequest) {
     "mr",
     "view",
     mergeRequest.web_url || String(mergeRequest.iid),
-    "--json",
-    "state,title,web_url,source_branch,target_branch",
+    "-F",
+    "json",
   ]);
   const parsed = parseJson(result.stdout, "glab mr view output");
   if (!parsed || Array.isArray(parsed)) {
@@ -112,7 +111,7 @@ async function waitUntilMergeableAndMerge(glabBin, mergeRequest, timeoutMs, inte
       lastFailure = (mergeResult.stderr || mergeResult.stdout || "").trim() || `exit ${mergeResult.status}`;
     }
 
-    const viewed = runGlab(glabBin, ["mr", "view", reference, "--json", "state"], true);
+    const viewed = runGlab(glabBin, ["mr", "view", reference, "-F", "json"], true);
     if (!viewed.error && viewed.status === 0) {
       const parsed = parseJson(viewed.stdout, "glab mr view output");
       if (parsed && parsed.state === "merged") {

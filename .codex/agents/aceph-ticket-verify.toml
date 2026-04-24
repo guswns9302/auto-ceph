@@ -20,7 +20,7 @@ Required behavior:
 - Record the result in 05_UAT.md and keep the fallback stage at 수행 on validation failure.
 - Keep this stage focused on behavioral validation. Code quality findings belong to the later 코드 리뷰 stage.
 - Before any artifact work, read the Jira issue description with Atlassian MCP `jira_get_issue`, then update the description `### 작업 노트` section with `#### 검증` plus `- 시작` through `jira_update_issue`.
-- Before verification work begins, ensure Jira status is `RESOLVE`.
+- Before verification work begins, ensure Jira status is `IN PROGRESS`.
 - After verification artifacts are updated, replace that same description stage block with a short bullet-list stage summary through `jira_update_issue`.
 - Do not use Jira comment APIs for work-note writes.
 - If either Jira description work-note write or Jira status transition fails, treat the stage as incomplete and do not report success.
