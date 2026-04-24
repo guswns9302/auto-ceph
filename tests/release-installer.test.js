@@ -45,6 +45,10 @@ function makeSourceTree(rootDir) {
     path.join(rootDir, ".auto-ceph-work", "references", "e2e-scenario-template.md"),
     "#### 테스트 시나리오\n#### 기대 결과\n#### 확인 범위\n"
   );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md"),
+    "# [ACW E2E] <menu1> E2E 테스트\n### E2E 테스트 결과\n"
+  );
   write(path.join(rootDir, ".auto-ceph-work", "references", "test-case", "v306.json"), "{\"features\":[]}\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
@@ -80,6 +84,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-approval", "SKILL.md"), "# auto ceph approval\n");
+  write(path.join(rootDir, ".codex", "skills", "auto-ceph-e2e", "SKILL.md"), "# auto ceph e2e\n");
 }
 
 test("ensureCodexHooksFeature adds or upgrades the features block", () => {
@@ -125,11 +130,13 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-approval", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-e2e", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, INSTALL_META_FILE)));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "project.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-test-config.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-scenario-template.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "test-case", "v306.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js")));

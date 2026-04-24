@@ -164,6 +164,7 @@ function validateSourceTree(sourceRoot) {
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph", "SKILL.md"), "user skill");
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph-create", "SKILL.md"), "jira create skill");
   requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph-approval", "SKILL.md"), "approval skill");
+  requirePathExists(path.join(sourceRoot, LOCAL_CODEX_SKILL_DIR, "auto-ceph-e2e", "SKILL.md"), "E2E skill");
   requirePathExists(
     path.join(sourceRoot, ".auto-ceph-work", "references", "trombone-config.md"),
     "trombone config reference"
@@ -175,6 +176,10 @@ function validateSourceTree(sourceRoot) {
   requirePathExists(
     path.join(sourceRoot, ".auto-ceph-work", "references", "e2e-scenario-template.md"),
     "E2E scenario template reference"
+  );
+  requirePathExists(
+    path.join(sourceRoot, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md"),
+    "E2E Jira ticket template reference"
   );
   requirePathExists(
     path.join(sourceRoot, ".auto-ceph-work", "references", "test-case", "v306.json"),

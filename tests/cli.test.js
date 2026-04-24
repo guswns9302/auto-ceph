@@ -43,6 +43,10 @@ function makeSourceTree(rootDir) {
     path.join(rootDir, ".auto-ceph-work", "references", "e2e-scenario-template.md"),
     "#### 테스트 시나리오\n#### 기대 결과\n#### 확인 범위\n"
   );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md"),
+    "# [ACW E2E] <menu1> E2E 테스트\n### E2E 테스트 결과\n"
+  );
   write(path.join(rootDir, ".auto-ceph-work", "references", "test-case", "v306.json"), "{\"features\":[]}\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "new-ticket-doc.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "prepare_ticket_branch.sh"), "#!/usr/bin/env bash\n");
@@ -78,6 +82,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".codex", "skills", "auto-ceph", "SKILL.md"), "# auto ceph\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-create", "SKILL.md"), "# auto ceph create\n");
   write(path.join(rootDir, ".codex", "skills", "auto-ceph-approval", "SKILL.md"), "# auto ceph approval\n");
+  write(path.join(rootDir, ".codex", "skills", "auto-ceph-e2e", "SKILL.md"), "# auto ceph e2e\n");
 }
 
 function runCli(args) {
@@ -132,9 +137,11 @@ test("cli install routes to the installer and uses package version by default", 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-approval", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-e2e", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
@@ -2250,12 +2257,28 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(skill, /E2E agent 실행과 `DONE` 전이를 절대 수행하지 않는다/);
   assert.match(skill, /`status=completed`와 `pipeline=<pipeline_prefix><repo>`/);
   assert.match(skill, /E2E agent를 실행/);
-  assert.match(skill, /`status=passed\|failed`, `ticket_id`, `summary`, `evidence`/);
+  assert.match(skill, /agent id를 해당 티켓 ID와 함께 기록/);
+  assert.match(skill, /`wait_agent` timeout 또는 빈 status는 실패가 아니라 단순 polling 결과/);
+  assert.match(skill, /terminal subagent status를 반환할 때까지 같은 agent id를 계속 추적/);
+  assert.match(skill, /pending\/running E2E agent가 하나라도 있으면 approval 메인 세션은 `final_answer`로 종료하면 안 된다/);
+  assert.match(skill, /terminal result를 반환하기 전에는 Jira `### E2E 테스트 결과`, E2E 댓글, 원본 티켓 `DONE` 전이, 후속 티켓 생성으로 넘어가면 안 된다/);
+  assert.match(skill, /`status=passed\|failed`, `ticket_id`, `summary`, `failure_reason`, `failed_step`, `expected`, `actual`, `evidence`/);
+  assert.match(skill, /terminal result가 malformed이거나 `ticket_id`가 기대 티켓과 다르면 E2E 실패가 아니라 orchestration\/system failure/);
+  assert.match(skill, /`spawn -> terminal result wait -> result validation -> Jira 결과 처리 -> 다음 티켓 spawn`/);
+  assert.match(skill, /개별 티켓 E2E terminal result가 `failed`여도 남은 대상 티켓의 E2E 실행은 계속 진행/);
+  assert.match(skill, /pending\/running 상태를 실패로 간주해 다음 티켓으로 넘어가면 안 된다/);
   assert.match(skill, /`### E2E 테스트 결과` 섹션/);
   assert.match(skill, /`E2E 테스트 성공` 댓글/);
   assert.match(skill, /`E2E 테스트 실패` 댓글/);
   assert.match(skill, /상태를 `DONE`으로 변경/);
-  assert.match(skill, /DONE`으로 전이하지 않은 채 전체 실행을 실패/);
+  assert.match(skill, /E2E 성공\/실패 댓글과 결과 기록이 끝난 뒤 Atlassian MCP로 원본 티켓 상태를 `DONE`으로 변경/);
+  assert.match(skill, /\[ACW\] <원본 티켓> E2E 실패 후속 조치/);
+  assert.match(skill, /후속 티켓 `### 프로젝트`에는 `repo`와 `remote`를 반드시 포함하며 `remote`는 항상 `origin`/);
+  assert.match(skill, /원본 티켓 링크, E2E 시나리오, 실패 step, 실제 오류\/증거, 기대 결과 대비 차이/);
+  assert.match(skill, /remote-ceph-admin.*ceph-service-api.*ceph-api-gateway.*ceph-service-scheduler/);
+  assert.match(skill, /jira_create_issue/);
+  assert.match(skill, /생성 직후 상태가 `TO DO`가 아니면 Atlassian MCP로 `TO DO` 전이/);
+  assert.match(skill, /`티켓`, `E2E 결과`, `DONE 전이`, `실패 원인`, `후속 티켓`/);
   assert.match(skill, /`MR approve \/ merge success` 댓글을 추가/);
   assert.match(skill, /`Trombone 파이프라인 실행 완료 \(<pipeline_prefix><repo>\)` 댓글을 추가/);
   assert.match(skill, /comment API 사용은 approval status notification comment와 E2E result notification comment에만 허용되는 예외/);
@@ -2277,6 +2300,10 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(e2eAgent, /model_reasoning_effort = "medium"/);
   assert.match(e2eAgent, /playwright_cli\.sh/);
   assert.match(e2eAgent, /target case JSON/);
+  assert.match(e2eAgent, /failure_reason/);
+  assert.match(e2eAgent, /failed_step/);
+  assert.match(e2eAgent, /expected/);
+  assert.match(e2eAgent, /actual/);
   assert.match(e2eAgent, /Do not edit helper, config, skill, or test-case files/);
   assert.match(mrHelper, /mr",\s+"approve"/);
   assert.match(mrHelper, /mr",\s+"merge"/);
@@ -2295,4 +2322,59 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(tromboneHelper, /trombone deployment failed/);
   assert.match(tromboneHelper, /status=completed/);
   assert.match(tromboneHelper, /run-code/);
+});
+
+test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", () => {
+  const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph-e2e", "SKILL.md"));
+  const ticketTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-jira-ticket-template.md"));
+  const e2eAgent = readRepoFile(path.join(".codex", "agents", "aceph-approval-e2e.toml"));
+
+  assert.match(skill, /무인자 실행만 지원/);
+  assert.match(skill, /`features\[\]\.steps\[\]\.menu_path\[0\]`에서 `menu1` 목록/);
+  assert.match(skill, /e2e 테스트 메뉴를 골라주세요/);
+  assert.match(skill, /사용자가 선택한 메뉴가 `menu1` 목록에 없으면/);
+  assert.match(skill, /선택된 `menu1`에 속한 모든 feature와 step/);
+  assert.match(skill, /`#### 테스트 시나리오`, `#### 기대 결과`, `#### 확인 범위`/);
+  assert.match(skill, /첫 단계는 항상 E2E config의 `url`로 접속하고 `id`와 `pw`를 입력해 로그인/);
+  assert.match(skill, /`project_key="CDS"`, `issue_type="Task"`/);
+  assert.match(skill, /\[ACW E2E\] <menu1> E2E 테스트/);
+  assert.match(skill, /생성 직후 상태가 `TO DO`가 아니면 Atlassian MCP로 `TO DO` 전이/);
+  assert.match(skill, /`IN PROGRESS`로 전이/);
+  assert.match(skill, /update_jira_ticket_time_note\.js <description-file> start/);
+  assert.match(skill, /E2E agent 입력에는 E2E 실행 티켓 ID, 선택된 `menu1`/);
+  assert.match(skill, /agent id를 E2E 실행 티켓 ID와 함께 기록/);
+  assert.match(skill, /`wait_agent` timeout 또는 빈 status는 실패가 아니라 단순 polling 결과/);
+  assert.match(skill, /terminal subagent status를 반환할 때까지 같은 agent id를 계속 추적/);
+  assert.match(skill, /pending\/running E2E agent가 있으면 메인 세션은 `final_answer`로 종료하면 안 된다/);
+  assert.match(skill, /terminal result를 반환하기 전에는 Jira `### E2E 테스트 결과`, `티켓 종료 시간`, `DONE` 전이, 후속 티켓 생성으로 넘어가면 안 된다/);
+  assert.match(skill, /`status=passed\|failed`, `ticket_id`, `menu1`, `summary`, `failure_reason`, `failed_step`, `expected`, `actual`, `evidence`, `results\[\]`/);
+  assert.match(skill, /`feature_name`, `menu_path`, `status=passed\|failed`, `failed_step`, `expected`, `actual`, `evidence`, `failure_reason`/);
+  assert.match(skill, /malformed이거나 `ticket_id`가 기대 E2E 실행 티켓과 다르면 E2E 실패가 아니라 orchestration\/system failure/);
+  assert.match(skill, /`### E2E 테스트 결과` 섹션을 생성 또는 교체하고 기능별 상세 결과/);
+  assert.match(skill, /update_jira_ticket_time_note\.js <description-file> end/);
+  assert.match(skill, /E2E 실행 티켓 상태를 `DONE`으로 변경/);
+  assert.match(skill, /E2E 실패 기능\/케이스마다 실패 원인을 분석해 사용자 입력 없이 새 Jira `Task`를 1개 생성/);
+  assert.match(skill, /\[ACW\] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>/);
+  assert.match(skill, /후속 티켓 `### 프로젝트`에는 `repo`와 `remote`를 반드시 포함하며 `remote`는 항상 `origin`/);
+  assert.match(skill, /E2E 실행 티켓 링크, 선택 메뉴, E2E 시나리오, 실패 step, 실제 오류\/증거, 기대 결과 대비 차이/);
+  assert.match(skill, /remote-ceph-admin.*ceph-service-api.*ceph-api-gateway.*ceph-service-scheduler/);
+  assert.match(skill, /assignee\/reporter는 `\.auto-ceph-work\/scripts\/resolve_atlassian_identity\.sh`의 `jira_username`/);
+  assert.match(skill, /생성 직후 상태가 `TO DO`가 아니면 Atlassian MCP로 `TO DO` 전이/);
+  assert.match(skill, /후속 티켓은 생성만 하고 같은 `\$auto-ceph-e2e` 실행 안에서 즉시 처리하지 않는다/);
+  assert.match(skill, /표 컬럼은 `기능`, `E2E 결과`, `실패 원인`, `후속 티켓`/);
+  assert.match(skill, /helper, config, skill, test-case 파일을 즉석 수정하지 않는다/);
+
+  assert.match(ticketTemplate, /\[ACW E2E\] <menu1> E2E 테스트/);
+  assert.match(ticketTemplate, /### E2E 테스트 정보/);
+  assert.match(ticketTemplate, /### E2E 테스트 시나리오/);
+  assert.match(ticketTemplate, /### E2E 테스트 결과/);
+  assert.match(ticketTemplate, /티켓 시작 시간/);
+  assert.match(ticketTemplate, /티켓 종료 시간/);
+
+  assert.match(e2eAgent, /Auto-Ceph E2E agent/);
+  assert.match(e2eAgent, /\$auto-ceph-e2e/);
+  assert.match(e2eAgent, /selected `menu1`/);
+  assert.match(e2eAgent, /results\[\]/);
+  assert.match(e2eAgent, /feature_name/);
+  assert.match(e2eAgent, /menu_path/);
 });
