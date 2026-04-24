@@ -90,7 +90,8 @@
 ## Installation
 
 - 이 저장소는 npm 패키지로 배포하고, 대상 프로젝트에서는 `npx @eddy_yun/auto-ceph-work install`로 설치한다.
-- 설치 시 프로젝트 로컬 `.codex/config.toml`이 자동으로 병합되며, hook 경로는 설치된 프로젝트의 `.codex/hooks/*.js`를 가리킨다.
+- 설치 시 프로젝트 로컬 `.codex/config.toml`에는 `codex_hooks = true`만 병합하고, 실제 hook 정의는 `.codex/hooks.json`에 등록한다.
+- hook command 경로는 설치된 프로젝트의 `.codex/hooks/*.js`를 가리킨다.
 - 전역 `~/.codex/config.toml`은 수정하지 않는다.
 
 예시:

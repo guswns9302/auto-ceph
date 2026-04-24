@@ -8,6 +8,7 @@ const path = require("path");
 
 const {
   INSTALL_META_FILE,
+  MANAGED_BLOCK_END,
   MANAGED_BLOCK_START,
   ensureCodexHooksFeature,
   getPackageVersion,
@@ -51,7 +52,7 @@ function makeSourceTree(rootDir) {
     path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"),
     [
       'name = "aceph-ticket-intake"',
-      'model = "gpt-5.4-mini"',
+      'model = "gpt-5.5"',
       'model_reasoning_effort = "medium"',
       "",
     ].join("\n")
@@ -81,10 +82,10 @@ test("upsertManagedConfigBlock replaces a previous managed block", () => {
   const first = upsertManagedConfigBlock("", "/tmp/project-a");
   const second = upsertManagedConfigBlock(first, "/tmp/project-b");
 
-  assert.match(second, new RegExp(escapeForRegExp(MANAGED_BLOCK_START), "g"));
-  assert.equal(second.match(new RegExp(escapeForRegExp(MANAGED_BLOCK_START), "g")).length, 1);
-  assert.match(second, /project-b/);
-  assert.doesNotMatch(second, /project-a/);
+  assert.match(second, /codex_hooks = true/);
+  assert.doesNotMatch(second, new RegExp(escapeForRegExp(MANAGED_BLOCK_START), "g"));
+  assert.doesNotMatch(second, /\[\[hooks\]\]/);
+  assert.doesNotMatch(second, /project-a|project-b/);
 });
 
 test("installProject copies assets and patches local .codex/config.toml", () => {
@@ -117,14 +118,61 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, ".auto-ceph-work.json")), false);
   const intakeAgent = fs.readFileSync(path.join(projectRoot, ".codex", "agents", "aceph-ticket-intake.toml"), "utf8");
-  assert.match(intakeAgent, /model = "gpt-5\.4-mini"/);
+  assert.match(intakeAgent, /model = "gpt-5\.5"/);
   assert.match(intakeAgent, /model_reasoning_effort = "medium"/);
 
   const config = fs.readFileSync(path.join(projectRoot, ".codex", "config.toml"), "utf8");
   assert.match(config, /codex_hooks = true/);
-  assert.match(config, /\.codex\/hooks\/aceph-prompt-guard\.js/);
-  assert.match(config, new RegExp(escapeForRegExp(projectRoot)));
+  assert.doesNotMatch(config, /\[\[hooks\]\]/);
+  assert.doesNotMatch(config, /\[\[hooks\.hooks\]\]/);
   assert.doesNotMatch(config, /event = "Stop"/);
+
+  const hooksJson = JSON.parse(fs.readFileSync(path.join(projectRoot, ".codex", "hooks.json"), "utf8"));
+  assert.equal(hooksJson.hooks.PreToolUse.length, 1);
+  assert.equal(hooksJson.hooks.PreToolUse[0].matcher, "Write|Edit|MultiEdit|apply_patch|functions.apply_patch");
+  const commands = hooksJson.hooks.PreToolUse[0].hooks.map((hook) => hook.command);
+  assert.ok(commands.includes(`node "${path.join(projectRoot, ".codex", "hooks", "aceph-prompt-guard.js")}"`));
+  assert.ok(commands.includes(`node "${path.join(projectRoot, ".codex", "hooks", "aceph-workflow-guard.js")}"`));
+  assert.equal(commands.length, 2);
+});
+
+test("installProject removes legacy inline hook config and avoids duplicate hooks.json entries", () => {
+  const sourceRoot = makeTempDir("aceph-source-");
+  const projectRoot = makeTempDir("aceph-project-");
+  makeSourceTree(sourceRoot);
+  write(
+    path.join(projectRoot, ".codex", "config.toml"),
+    [
+      "[features]",
+      "codex_hooks = false",
+      MANAGED_BLOCK_START,
+      "[[hooks]]",
+      'event = "PreToolUse"',
+      MANAGED_BLOCK_END,
+      "",
+    ].join("\n")
+  );
+
+  installProject({
+    sourceRoot,
+    projectRoot,
+    version: "v1.2.3",
+  });
+  installProject({
+    sourceRoot,
+    projectRoot,
+    version: "v1.2.3",
+  });
+
+  const config = fs.readFileSync(path.join(projectRoot, ".codex", "config.toml"), "utf8");
+  assert.match(config, /codex_hooks = true/);
+  assert.doesNotMatch(config, new RegExp(escapeForRegExp(MANAGED_BLOCK_START)));
+  assert.doesNotMatch(config, /\[\[hooks\]\]/);
+
+  const hooksJson = JSON.parse(fs.readFileSync(path.join(projectRoot, ".codex", "hooks.json"), "utf8"));
+  const commands = hooksJson.hooks.PreToolUse.flatMap((entry) => entry.hooks || []).map((hook) => hook.command);
+  assert.equal(commands.filter((command) => /aceph-prompt-guard\.js/.test(command)).length, 1);
+  assert.equal(commands.filter((command) => /aceph-workflow-guard\.js/.test(command)).length, 1);
 });
 
 test("installProject removes legacy aceph-orchestrator asset during refresh", () => {
@@ -148,6 +196,25 @@ test("uninstallProject removes managed assets and local config block only", () =
   const projectRoot = makeTempDir("aceph-project-");
   makeSourceTree(sourceRoot);
   write(path.join(projectRoot, ".codex", "config.toml"), 'model = "gpt-5.4"\n');
+  write(
+    path.join(projectRoot, ".codex", "hooks.json"),
+    JSON.stringify({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Bash",
+            hooks: [
+              {
+                type: "command",
+                command: "node \"/tmp/user-hook.js\"",
+                timeout: 3,
+              },
+            ],
+          },
+        ],
+      },
+    }, null, 2)
+  );
 
   installProject({
     sourceRoot,
@@ -170,6 +237,11 @@ test("uninstallProject removes managed assets and local config block only", () =
   assert.match(config, /model = "gpt-5.4"/);
   assert.doesNotMatch(config, /aceph-prompt-guard\.js/);
   assert.doesNotMatch(config, new RegExp(escapeForRegExp(MANAGED_BLOCK_START)));
+
+  const hooksJson = JSON.parse(fs.readFileSync(path.join(projectRoot, ".codex", "hooks.json"), "utf8"));
+  assert.equal(hooksJson.hooks.PreToolUse.length, 1);
+  assert.equal(hooksJson.hooks.PreToolUse[0].matcher, "Bash");
+  assert.equal(hooksJson.hooks.PreToolUse[0].hooks[0].command, "node \"/tmp/user-hook.js\"");
 });
 
 function escapeForRegExp(value) {

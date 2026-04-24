@@ -50,7 +50,7 @@ function makeSourceTree(rootDir) {
     path.join(rootDir, ".codex", "agents", "aceph-ticket-intake.toml"),
     [
       'name = "aceph-ticket-intake"',
-      'model = "gpt-5.4-mini"',
+      'model = "gpt-5.5"',
       'model_reasoning_effort = "medium"',
       "",
     ].join("\n")
@@ -113,6 +113,7 @@ test("cli install routes to the installer and uses package version by default", 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-create", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-approval", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
   assert.equal(fs.existsSync(path.join(projectRoot, "scripts", "new-ticket-doc.sh")), false);
@@ -122,6 +123,7 @@ test("cli install routes to the installer and uses package version by default", 
     fs.readFileSync(path.join(projectRoot, ".auto-ceph-work", "install.json"), "utf8")
   );
   assert.equal(metadata.version, packageVersion);
+  assert.equal(metadata.managed_hooks_path, ".codex/hooks.json");
 });
 
 test("cli prints package command usage on invalid input", () => {
@@ -930,7 +932,12 @@ test("cli install does not install a Stop hook or run-state helper", () => {
 
   const config = fs.readFileSync(path.join(projectRoot, ".codex", "config.toml"), "utf8");
   assert.doesNotMatch(config, /event = "Stop"/);
+  assert.doesNotMatch(config, /\[\[hooks\]\]/);
   assert.doesNotMatch(config, /aceph-stop-continue\.js/);
+
+  const hooksJson = JSON.parse(fs.readFileSync(path.join(projectRoot, ".codex", "hooks.json"), "utf8"));
+  const commands = hooksJson.hooks.PreToolUse.flatMap((entry) => entry.hooks || []).map((hook) => hook.command);
+  assert.doesNotMatch(commands.join("\n"), /aceph-stop-continue\.js/);
 });
 
 test("format_jira_note script renders a start block for description work notes", () => {
@@ -1853,13 +1860,13 @@ test("review and plan templates include verification-unblock scope guardrails", 
 
 test("stage agents pin role-specific model and reasoning defaults", () => {
   const expectedAgents = {
-    "aceph-ticket-intake.toml": { model: "gpt-5.4-mini", reasoning: "medium" },
-    "aceph-ticket-plan.toml": { model: "gpt-5.4-mini", reasoning: "high" },
-    "aceph-ticket-review.toml": { model: "gpt-5.4-mini", reasoning: "low" },
-    "aceph-ticket-execute.toml": { model: "gpt-5.4", reasoning: "medium" },
-    "aceph-ticket-verify.toml": { model: "gpt-5.4", reasoning: "medium" },
-    "aceph-ticket-code-review.toml": { model: "gpt-5.4", reasoning: "high" },
-    "aceph-ticket-review-request.toml": { model: "gpt-5.4-mini", reasoning: "medium" },
+    "aceph-ticket-intake.toml": { model: "gpt-5.5", reasoning: "medium" },
+    "aceph-ticket-plan.toml": { model: "gpt-5.5", reasoning: "high" },
+    "aceph-ticket-review.toml": { model: "gpt-5.5", reasoning: "low" },
+    "aceph-ticket-execute.toml": { model: "gpt-5.5", reasoning: "medium" },
+    "aceph-ticket-verify.toml": { model: "gpt-5.5", reasoning: "medium" },
+    "aceph-ticket-code-review.toml": { model: "gpt-5.5", reasoning: "high" },
+    "aceph-ticket-review-request.toml": { model: "gpt-5.5", reasoning: "medium" },
   };
 
   for (const [fileName, expected] of Object.entries(expectedAgents)) {

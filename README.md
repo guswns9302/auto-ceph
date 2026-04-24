@@ -41,7 +41,7 @@ npx @eddy_yun/auto-ceph-work uninstall --project .
 - `.codex/skills/auto-ceph-create/`
 - `.codex/hooks/*`
 
-전역 `~/.codex/config.toml`은 수정하지 않는다. 프로젝트 로컬 `.codex/config.toml`만 관리한다.
+전역 `~/.codex/config.toml`은 수정하지 않는다. 프로젝트 로컬 `.codex/config.toml`과 `.codex/hooks.json`만 관리한다.
 
 ## Prerequisites
 

@@ -257,42 +257,28 @@ function getLocalCodexConfigPath(projectRoot) {
   return path.join(projectRoot, ".codex", "config.toml");
 }
 
-function buildManagedConfigBlock(projectRoot) {
+function getLocalCodexHooksPath(projectRoot) {
+  return path.join(projectRoot, ".codex", "hooks.json");
+}
+
+function getManagedHookCommands(projectRoot) {
   const localCodexRoot = path.join(projectRoot, ".codex");
   const promptGuard = path.join(localCodexRoot, "hooks", "aceph-prompt-guard.js");
   const workflowGuard = path.join(localCodexRoot, "hooks", "aceph-workflow-guard.js");
 
   return [
-    MANAGED_BLOCK_START,
-    `# project_root = "${escapeTomlBasicString(projectRoot)}"`,
-    `# managed_by = "auto-ceph-work installer"`,
-    "[[hooks]]",
-    'event = "PreToolUse"',
-    `matcher = "${MUTATION_MATCHER}"`,
-    "",
-    "[[hooks.hooks]]",
-    'type = "command"',
-    `command = "node \\"${escapeTomlBasicString(promptGuard)}\\""`,
-    "timeout = 5",
-    "",
-    "[[hooks]]",
-    'event = "PreToolUse"',
-    `matcher = "${MUTATION_MATCHER}"`,
-    "",
-    "[[hooks.hooks]]",
-    'type = "command"',
-    `command = "node \\"${escapeTomlBasicString(workflowGuard)}\\""`,
-    "timeout = 5",
-    MANAGED_BLOCK_END,
-    "",
-  ].join("\n");
+    `node "${promptGuard}"`,
+    `node "${workflowGuard}"`,
+  ];
+}
+
+function buildManagedConfigBlock() {
+  return "";
 }
 
 function upsertManagedConfigBlock(configText, projectRoot) {
   const base = stripManagedBlock(configText || "");
-  const ensured = ensureCodexHooksFeature(base);
-  const trimmed = ensured.trimEnd();
-  return `${trimmed}\n\n${buildManagedConfigBlock(projectRoot)}`;
+  return ensureCodexHooksFeature(base);
 }
 
 function updateLocalCodexConfig(projectRoot) {
@@ -301,6 +287,122 @@ function updateLocalCodexConfig(projectRoot) {
   const next = upsertManagedConfigBlock(current, projectRoot);
   writeFile(configPath, next);
   return configPath;
+}
+
+function parseHooksJson(raw, hooksPath) {
+  if (!raw || raw.trim() === "") {
+    return {};
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`invalid hooks.json: ${hooksPath}: ${error.message}`);
+  }
+}
+
+function isManagedHookCommand(hook, managedCommands) {
+  return hook
+    && hook.type === "command"
+    && typeof hook.command === "string"
+    && managedCommands.includes(hook.command);
+}
+
+function removeManagedHooksFromConfig(config, managedCommands) {
+  const next = config && typeof config === "object" && !Array.isArray(config) ? { ...config } : {};
+  const hooks = next.hooks && typeof next.hooks === "object" && !Array.isArray(next.hooks) ? { ...next.hooks } : {};
+
+  for (const [eventName, entries] of Object.entries(hooks)) {
+    if (!Array.isArray(entries)) {
+      continue;
+    }
+
+    const filteredEntries = [];
+    for (const entry of entries) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        filteredEntries.push(entry);
+        continue;
+      }
+
+      const hookList = Array.isArray(entry.hooks)
+        ? entry.hooks.filter((hook) => !isManagedHookCommand(hook, managedCommands))
+        : entry.hooks;
+
+      if (Array.isArray(hookList) && hookList.length === 0) {
+        continue;
+      }
+
+      filteredEntries.push({ ...entry, hooks: hookList });
+    }
+
+    if (filteredEntries.length > 0) {
+      hooks[eventName] = filteredEntries;
+    } else {
+      delete hooks[eventName];
+    }
+  }
+
+  if (Object.keys(hooks).length > 0) {
+    next.hooks = hooks;
+  } else {
+    delete next.hooks;
+  }
+
+  return next;
+}
+
+function upsertManagedHooksJson(hooksText, projectRoot) {
+  const hooksPath = getLocalCodexHooksPath(projectRoot);
+  const managedCommands = getManagedHookCommands(projectRoot);
+  const parsed = parseHooksJson(hooksText, hooksPath);
+  const withoutManaged = removeManagedHooksFromConfig(parsed, managedCommands);
+  const hooks = withoutManaged.hooks && typeof withoutManaged.hooks === "object" && !Array.isArray(withoutManaged.hooks)
+    ? { ...withoutManaged.hooks }
+    : {};
+
+  const entries = Array.isArray(hooks.PreToolUse) ? [...hooks.PreToolUse] : [];
+  entries.push({
+    matcher: MUTATION_MATCHER,
+    hooks: managedCommands.map((command) => ({
+      type: "command",
+      command,
+      timeout: 5,
+    })),
+  });
+
+  return {
+    ...withoutManaged,
+    hooks: {
+      ...hooks,
+      PreToolUse: entries,
+    },
+  };
+}
+
+function updateLocalCodexHooksJson(projectRoot) {
+  const hooksPath = getLocalCodexHooksPath(projectRoot);
+  const current = readFileIfExists(hooksPath) || "";
+  const next = upsertManagedHooksJson(current, projectRoot);
+  writeFile(hooksPath, `${JSON.stringify(next, null, 2)}\n`);
+  return hooksPath;
+}
+
+function removeManagedHooksJson(projectRoot) {
+  const hooksPath = getLocalCodexHooksPath(projectRoot);
+  const current = readFileIfExists(hooksPath);
+  if (current === null) {
+    return null;
+  }
+
+  const next = removeManagedHooksFromConfig(parseHooksJson(current, hooksPath), getManagedHookCommands(projectRoot));
+  if (Object.keys(next).length === 0) {
+    fs.rmSync(hooksPath, { force: true });
+    cleanupEmptyParents(projectRoot, hooksPath);
+    return hooksPath;
+  }
+
+  writeFile(hooksPath, `${JSON.stringify(next, null, 2)}\n`);
+  return hooksPath;
 }
 
 function removeManagedConfig(projectRoot) {
@@ -369,6 +471,7 @@ function writeInstallMetadata(projectRoot, sourceRoot, version, managedPaths) {
     source_root: sourceRoot,
     managed_paths: managedPaths,
     managed_config_path: relativeManifestPath(path.join(".codex", "config.toml")),
+    managed_hooks_path: relativeManifestPath(path.join(".codex", "hooks.json")),
   };
   writeFile(path.join(projectRoot, INSTALL_META_FILE), `${JSON.stringify(metadata, null, 2)}\n`);
   return metadata;
@@ -390,11 +493,27 @@ function validateInstalledProject(projectRoot, managedPaths) {
   }
 
   const configText = readFileIfExists(getLocalCodexConfigPath(projectRoot)) || "";
-  if (!configText.includes(MANAGED_BLOCK_START)) {
-    throw new Error("local .codex/config.toml did not receive the managed auto-ceph block");
+  if (!/^\s*codex_hooks\s*=\s*true\s*$/m.test(configText)) {
+    throw new Error("local .codex/config.toml did not enable codex_hooks");
   }
-  if (!configText.includes(".codex/hooks/aceph-prompt-guard.js")) {
-    throw new Error("local .codex/config.toml did not reference the local prompt guard hook");
+  if (configText.includes("[[hooks]]") || configText.includes("[[hooks.hooks]]")) {
+    throw new Error("local .codex/config.toml still contains inline hook definitions");
+  }
+
+  const hooksText = readFileIfExists(getLocalCodexHooksPath(projectRoot)) || "";
+  const hooksJson = parseHooksJson(hooksText, getLocalCodexHooksPath(projectRoot));
+  const managedCommands = getManagedHookCommands(projectRoot);
+  const preToolUseEntries = hooksJson.hooks?.PreToolUse;
+  if (!Array.isArray(preToolUseEntries)) {
+    throw new Error("local .codex/hooks.json did not receive PreToolUse hooks");
+  }
+  const installedCommands = preToolUseEntries.flatMap((entry) => Array.isArray(entry?.hooks) ? entry.hooks : [])
+    .filter((hook) => hook?.type === "command")
+    .map((hook) => hook.command);
+  for (const command of managedCommands) {
+    if (!installedCommands.includes(command)) {
+      throw new Error(`local .codex/hooks.json did not reference managed hook: ${command}`);
+    }
   }
 
   for (const relativePath of managedPaths) {
@@ -415,6 +534,7 @@ function installProject(options) {
   copyManagedAssets(sourceRoot, projectRoot);
   const metadata = writeInstallMetadata(projectRoot, sourceRoot, version, managedPaths);
   const configPath = updateLocalCodexConfig(projectRoot);
+  updateLocalCodexHooksJson(projectRoot);
   validateInstalledProject(projectRoot, managedPaths);
 
   return {
@@ -480,6 +600,7 @@ function uninstallProject(options) {
     cleanupEmptyParents(projectRoot, absolutePath);
   }
 
+  removeManagedHooksJson(projectRoot);
   const configPath = removeManagedConfig(projectRoot);
   return {
     configPath,
@@ -546,12 +667,16 @@ module.exports = {
   buildManagedPaths,
   ensureCodexHooksFeature,
   getPackageVersion,
+  getLocalCodexHooksPath,
+  getManagedHookCommands,
   installProject,
   main,
   parseArgs,
   removeManagedConfig,
+  removeManagedHooksJson,
   stripManagedBlock,
   uninstallProject,
+  upsertManagedHooksJson,
   upsertManagedConfigBlock,
   usage,
 };
