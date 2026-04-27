@@ -2035,7 +2035,7 @@ test("auto-ceph contracts record ticket-level start and end times in work notes"
   assert.match(nextCommand, /update_jira_ticket_time_note\.js <description-file> end/);
   assert.match(orchestration, /티켓 시작 시간/);
   assert.match(orchestration, /티켓 종료 시간/);
-  assert.match(runtimeContract, /ticket-level 작업 시간 helper는 `\.auto-ceph-work\/scripts\/update_jira_ticket_time_note\.js`/);
+  assert.match(runtimeContract, /ticket-level 시간 기록용 `\.auto-ceph-work\/scripts\/update_jira_ticket_time_note\.js`/);
   assert.match(runtimeOrchestration, /티켓 시작 시간/);
   assert.match(runtimeOrchestration, /티켓 종료 시간/);
   assert.match(jiraSync, /시간 메타는 `- 티켓 시작 시간: YYYY-MM-DD HH:mm:ss Z`와 `- 티켓 종료 시간:`/);
@@ -2082,7 +2082,7 @@ test("main orchestration delegates commit and push to review-request stage", () 
 
   assert.match(nextCommand, /do not perform ticket-level commit or push in the main session/);
   assert.match(orchestration, /do not run ticket-level commit or push in the main session/);
-  assert.match(runtimeContract, /메인 세션은 티켓 단위 `git commit`과 `git push`를 수행하지 않는다/);
+  assert.match(runtimeContract, /메인 세션은 티켓 단위 `git commit`과 `git push`를 수행하지 않으며/);
   assert.match(runtimeOrchestration, /메인 세션은 티켓 loop terminal 시 commit\/push를 수행하지 않는다/);
   assert.match(skill, /ticket 단위 `git commit`과 `git push`는 `리뷰 요청` stage가 `\.auto-ceph-work\/scripts\/commit_and_push_ticket_branch\.sh`를 통해 수행한다/);
 });
@@ -2099,7 +2099,7 @@ test("auto-ceph skill defines review-request completion as a helper-backed excep
   assert.match(skill, /`리뷰 요청` stage 완료 조건은 `Jira 시작 기록 -> 07_SUMMARY\.md 기본 요약 작성 -> ticket commit -> push -> MR helper 성공 -> 07_SUMMARY\.md MR 메타 반영 -> Jira description 최종 동기화`/);
   assert.match(workflow, /`07_SUMMARY\.md`가 미완료거나 MR 메타가 비어 있으면 `리뷰 요청`/);
   assert.match(runtimeContract, /`리뷰 요청` 단계는 Jira `RESOLVE` 보장, `07_SUMMARY\.md` 기본 요약 작성, ticket branch commit, push, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY\.md` 반영, Jira description 최종 동기화까지 끝나야 완료다/);
-  assert.match(runtimeOrchestration, /`리뷰 요청` 완료는 `07_SUMMARY\.md` 기본 요약 작성, ticket commit, push, canonical helper 기반 MR 생성 또는 재사용, helper 결과의 `07_SUMMARY\.md` 반영, Jira description 최종 동기화를 모두 포함한다/);
+  assert.match(runtimeOrchestration, /`리뷰 요청` 완료의 상세 조건은 `runtime-contract\.md`와 `jira-sync\.md`의 review-request contract를 따른다/);
   assert.match(reviewRequestAgent, /description = "Finalize 07_SUMMARY\.md, commit\/push the ticket branch, and hand off the merge request\."/
   );
   assert.match(detector, /for required_key in "상태" "제목" "URL" "source" "target"/);
