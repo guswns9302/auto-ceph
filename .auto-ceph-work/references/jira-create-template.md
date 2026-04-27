@@ -1,16 +1,17 @@
 # Jira Create Template Reference
 
-`$auto-ceph-create`는 일반 Jira 티켓 작성기가 아니라 Auto-Ceph intake 가능한 ACW 티켓 생성기다.
+이 문서는 Auto-Ceph 계열 스킬이 Jira `Task`를 생성할 때 따라야 하는 공통 생성 계약이다.
+`$auto-ceph-create`는 일반 Jira 티켓 작성기가 아니라 Auto-Ceph intake 가능한 ACW 티켓 생성기이며, `$auto-ceph-approval`과 `$auto-ceph-e2e`의 자동 후속 티켓 생성도 이 sprint 배정 규칙을 따른다.
 
 ## Required Outcome
 
-생성 결과는 항상 아래를 만족해야 한다.
+Auto-Ceph 계열에서 생성하는 모든 Jira `Task`는 항상 아래를 만족해야 한다.
 
-- 제목에 `[ACW]` 프리픽스 포함
+- 제목에 `[ACW]` 또는 `[ACW E2E]` 프리픽스 포함
 - `project_key`는 항상 `CDS`
 - `issue_type`은 항상 `Task`
 - description 안에 `repo`, `remote` 포함
-- `### 문제점`, `### 개선 방향`, `### 작업 노트` 섹션 포함
+- ACW intake 후속 티켓은 `### 문제점`, `### 개선 방향`, `### 작업 노트` 섹션 포함
 - `### 작업 노트`에는 초기값으로 `#### 문제 확인`과 `- 시작 전` 포함
 - reporter와 assignee가 동일한 `JIRA_USERNAME`으로 설정됨
 - `CDS` scrum board의 active sprint에 즉시 배정됨
@@ -80,6 +81,8 @@
 
 ## Sprint Rules
 
+- 모든 Auto-Ceph 생성 티켓은 `jira_create_issue` 직후 `CDS` scrum board의 active sprint에 즉시 배정해야 한다.
 - `CDS` scrum board의 active sprint가 정확히 1개일 때만 생성 성공으로 본다.
 - active sprint가 없거나 여러 개면 생성을 실패로 처리한다.
+- `jira_add_issues_to_sprint` 실패는 티켓 생성 실패로 처리한다.
 - backlog fallback은 허용하지 않는다.

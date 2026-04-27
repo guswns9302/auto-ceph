@@ -2216,6 +2216,7 @@ test("agent-facing docs explain pinned stage models without introducing sandbox 
 
 test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => {
   const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph-approval", "SKILL.md"));
+  const jiraCreateTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "jira-create-template.md"));
   const tromboneConfig = readRepoFile(path.join(".auto-ceph-work", "references", "trombone-config.md"));
   const e2eConfig = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-test-config.md"));
   const e2eTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-scenario-template.md"));
@@ -2277,6 +2278,11 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(skill, /원본 티켓 링크, E2E 시나리오, 실패 step, 실제 오류\/증거, 기대 결과 대비 차이/);
   assert.match(skill, /remote-ceph-admin.*ceph-service-api.*ceph-api-gateway.*ceph-service-scheduler/);
   assert.match(skill, /jira_create_issue/);
+  assert.match(skill, /jira_get_agile_boards\(project_key="CDS", board_type="scrum"\)/);
+  assert.match(skill, /jira_get_sprints_from_board\(state="active"\)/);
+  assert.match(skill, /jira_add_issues_to_sprint/);
+  assert.match(skill, /backlog fallback은 허용하지 않는다/);
+  assert.match(skill, /후속 티켓 생성 실패로 기록하고 전체 approval 실행을 실패/);
   assert.match(skill, /생성 직후 상태가 `TO DO`가 아니면 Atlassian MCP로 `TO DO` 전이/);
   assert.match(skill, /`티켓`, `E2E 결과`, `DONE 전이`, `실패 원인`, `후속 티켓`/);
   assert.match(skill, /`MR approve \/ merge success` 댓글을 추가/);
@@ -2322,10 +2328,14 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(tromboneHelper, /trombone deployment failed/);
   assert.match(tromboneHelper, /status=completed/);
   assert.match(tromboneHelper, /run-code/);
+  assert.match(jiraCreateTemplate, /모든 Auto-Ceph 생성 티켓은 `jira_create_issue` 직후 `CDS` scrum board의 active sprint에 즉시 배정/);
+  assert.match(jiraCreateTemplate, /jira_add_issues_to_sprint` 실패는 티켓 생성 실패/);
+  assert.match(jiraCreateTemplate, /backlog fallback은 허용하지 않는다/);
 });
 
 test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", () => {
   const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph-e2e", "SKILL.md"));
+  const jiraCreateTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "jira-create-template.md"));
   const ticketTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-jira-ticket-template.md"));
   const e2eAgent = readRepoFile(path.join(".codex", "agents", "aceph-approval-e2e.toml"));
 
@@ -2338,6 +2348,9 @@ test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", ()
   assert.match(skill, /첫 단계는 항상 E2E config의 `url`로 접속하고 `id`와 `pw`를 입력해 로그인/);
   assert.match(skill, /`project_key="CDS"`, `issue_type="Task"`/);
   assert.match(skill, /\[ACW E2E\] <menu1> E2E 테스트/);
+  assert.match(skill, /E2E 실행 티켓 생성 직후 `jira_get_agile_boards\(project_key="CDS", board_type="scrum"\)`/);
+  assert.match(skill, /`jira_add_issues_to_sprint`로 즉시 배정/);
+  assert.match(skill, /E2E 실행 티켓 생성 실패로 보고한다\. backlog fallback은 허용하지 않는다/);
   assert.match(skill, /생성 직후 상태가 `TO DO`가 아니면 Atlassian MCP로 `TO DO` 전이/);
   assert.match(skill, /`IN PROGRESS`로 전이/);
   assert.match(skill, /update_jira_ticket_time_note\.js <description-file> start/);
@@ -2359,6 +2372,8 @@ test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", ()
   assert.match(skill, /E2E 실행 티켓 링크, 선택 메뉴, E2E 시나리오, 실패 step, 실제 오류\/증거, 기대 결과 대비 차이/);
   assert.match(skill, /remote-ceph-admin.*ceph-service-api.*ceph-api-gateway.*ceph-service-scheduler/);
   assert.match(skill, /assignee\/reporter는 `\.auto-ceph-work\/scripts\/resolve_atlassian_identity\.sh`의 `jira_username`/);
+  assert.match(skill, /후속 티켓 생성 직후 `jira_get_agile_boards\(project_key="CDS", board_type="scrum"\)`/);
+  assert.match(skill, /해당 후속 티켓 생성 실패로 보고한다\. backlog fallback은 허용하지 않는다/);
   assert.match(skill, /생성 직후 상태가 `TO DO`가 아니면 Atlassian MCP로 `TO DO` 전이/);
   assert.match(skill, /후속 티켓은 생성만 하고 같은 `\$auto-ceph-e2e` 실행 안에서 즉시 처리하지 않는다/);
   assert.match(skill, /표 컬럼은 `기능`, `E2E 결과`, `실패 원인`, `후속 티켓`/);
@@ -2377,4 +2392,6 @@ test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", ()
   assert.match(e2eAgent, /results\[\]/);
   assert.match(e2eAgent, /feature_name/);
   assert.match(e2eAgent, /menu_path/);
+  assert.match(jiraCreateTemplate, /모든 Auto-Ceph 생성 티켓은 `jira_create_issue` 직후 `CDS` scrum board의 active sprint에 즉시 배정/);
+  assert.match(jiraCreateTemplate, /backlog fallback은 허용하지 않는다/);
 });
