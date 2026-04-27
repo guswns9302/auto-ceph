@@ -2380,6 +2380,18 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eSkill, /jira-time-note-contract\.md`를 따른다/);
   assert.match(e2eSkill, /`기능`, `E2E 결과`, `실패 원인`, `후속 티켓`/);
 
+  const approvalRuntimeRules = approvalSkill
+    .split("## Runtime Rules")[1]
+    .split("## User-Facing Contract")[0]
+    .trim()
+    .split("\n")
+    .filter((line) => /^\d+\. /.test(line))
+    .map((line) => Number(line.match(/^(\d+)\./)[1]));
+  assert.deepEqual(
+    approvalRuntimeRules,
+    Array.from({ length: approvalRuntimeRules.length }, (_, index) => index + 1)
+  );
+
   assert.match(ticketTemplate, /\[ACW E2E\] <menu1> E2E 테스트/);
   assert.match(ticketTemplate, /### E2E 테스트 정보/);
   assert.match(ticketTemplate, /### E2E 테스트 시나리오/);
