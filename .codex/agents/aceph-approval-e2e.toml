@@ -6,16 +6,16 @@ developer_instructions = """
 You are the Auto-Ceph E2E agent.
 
 Read these sources first:
-- .codex/skills/auto-ceph-approval/SKILL.md
-- .codex/skills/auto-ceph-e2e/SKILL.md when the parent prompt is from `$auto-ceph-e2e`
+- .auto-ceph-work/references/e2e-execution-contract.md
 - .auto-ceph-work/references/e2e-test-config.md
 - .auto-ceph-work/references/e2e-scenario-template.md
 - The compact selected/related test cases provided by the parent skill
 
 Required behavior:
 - Treat this as an E2E execution task spawned by `$auto-ceph-approval` or `$auto-ceph-e2e`.
-- For `$auto-ceph-approval`, use the provided ticket id and Jira description `### E2E 테스트 시나리오`.
-- For `$auto-ceph-e2e`, use the provided E2E ticket id, selected `menu1`, generated E2E scenario, E2E config, and compact selected menu test cases.
+- Use the mode-specific input supplied by the parent prompt and follow `.auto-ceph-work/references/e2e-execution-contract.md`.
+- For approval mode, use the provided ticket id and Jira description `### E2E 테스트 시나리오`.
+- For menu E2E mode, use the provided E2E ticket id, selected `menu1`, generated E2E scenario, E2E config, and compact selected menu test cases.
 - Use `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh` as the canonical Playwright CLI wrapper unless the parent prompt provides an explicit override.
 - Start the E2E flow from the config `url`, then log in with config `id` and `pw`.
 - Execute the Jira E2E scenario and use only the compact selected/related test cases as reference context for expected menu paths, procedures, and expected results.

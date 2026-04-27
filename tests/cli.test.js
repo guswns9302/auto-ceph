@@ -2359,6 +2359,10 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(ticketTemplate, /티켓 종료 시간/);
 
   assert.match(e2eAgent, /Auto-Ceph E2E agent/);
+  assert.match(e2eAgent, /e2e-execution-contract\.md/);
+  assert.doesNotMatch(e2eAgent, /\.codex\/skills\/auto-ceph-approval\/SKILL\.md/);
+  assert.doesNotMatch(e2eAgent, /\.codex\/skills\/auto-ceph-e2e\/SKILL\.md/);
+  assert.match(e2eAgent, /Use the mode-specific input supplied by the parent prompt/);
   assert.match(e2eAgent, /compact selected\/related test cases/);
   assert.match(e2eAgent, /Do not read or load the full `\.auto-ceph-work\/references\/test-case\/v306\.json`/);
   assert.match(e2eAgent, /The parent skill owns Jira description updates, comments, DONE transition, and follow-up ticket creation/);
