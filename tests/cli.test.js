@@ -2280,6 +2280,7 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   const mrApprovalContract = readRepoFile(path.join(".auto-ceph-work", "references", "mr-approval-contract.md"));
   const jiraCreateTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "jira-create-template.md"));
   const ticketTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-jira-ticket-template.md"));
+  const scenarioTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-scenario-template.md"));
   const e2eAgent = readRepoFile(path.join(".codex", "agents", "aceph-approval-e2e.toml"));
   const selectHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "select_e2e_cases.js"));
   const mrHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"));
@@ -2370,10 +2371,15 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(approvalSkill, /mr-approval-contract\.md`를 따른다/);
   assert.match(approvalSkill, /trombone-deployment-contract\.md`를 따른다/);
   assert.match(approvalSkill, /`티켓`, `E2E 결과`, `DONE 전이`, `실패 원인`, `후속 티켓`/);
+  assert.match(approvalSkill, /feature_name`, `menu_path`, `procedure`, `expected_result`를 feature\/step 단위로 상세화/);
+  assert.match(approvalSkill, /메뉴 단위 한 줄 요약은 금지/);
 
   assert.match(e2eSkill, /select_e2e_cases\.js menu-list <target-case-json>/);
   assert.match(e2eSkill, /select_e2e_cases\.js select <target-case-json> <menu1>/);
   assert.match(e2eSkill, /e2e-case-selection-contract\.md`를 따른다/);
+  assert.match(e2eSkill, /compact selected cases 전체를 feature\/step 단위로 시나리오에 반영/);
+  assert.match(e2eSkill, /feature_name`, `menu_path`, `procedure`, `expected_result`를 feature\/step 단위로 상세화/);
+  assert.match(e2eSkill, /메뉴 단위 한 줄 요약은 금지/);
   assert.match(e2eSkill, /\[ACW E2E\] <menu1> E2E 테스트/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> start/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> end/);
@@ -2399,12 +2405,26 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(ticketTemplate, /티켓 시작 시간/);
   assert.match(ticketTemplate, /티켓 종료 시간/);
 
+  assert.match(scenarioTemplate, /메뉴 단위 한 줄 요약은 금지/);
+  assert.match(scenarioTemplate, /feature_name`, `menu_path`, `procedure`, `expected_result`를 feature\/step 단위로 풀어 작성/);
+  assert.match(scenarioTemplate, /이동 경로/);
+  assert.match(scenarioTemplate, /사전 조건/);
+  assert.match(scenarioTemplate, /실행 절차/);
+  assert.match(scenarioTemplate, /검증 포인트/);
+  assert.match(scenarioTemplate, /예외\/validation 흐름/);
+  assert.match(scenarioTemplate, /성공 기준/);
+  assert.match(scenarioTemplate, /선택 흐름`과 `예외 흐름`은 가능하면 별도 검증 단계/);
+  assert.match(scenarioTemplate, /필수 입력값, 버튼 클릭, 토스트 메시지, validation 문구, 목록 변화/);
+
   assert.match(e2eAgent, /Auto-Ceph E2E agent/);
   assert.match(e2eAgent, /e2e-execution-contract\.md/);
   assert.doesNotMatch(e2eAgent, /\.codex\/skills\/auto-ceph-approval\/SKILL\.md/);
   assert.doesNotMatch(e2eAgent, /\.codex\/skills\/auto-ceph-e2e\/SKILL\.md/);
   assert.match(e2eAgent, /Use the mode-specific input supplied by the parent prompt/);
   assert.match(e2eAgent, /compact selected\/related test cases/);
+  assert.match(e2eAgent, /step by step/);
+  assert.match(e2eAgent, /do not collapse it into a rough menu-level summary/);
+  assert.match(e2eAgent, /failed_step` must identify the detailed scenario step number or feature\/step name/);
   assert.match(e2eAgent, /Do not read or load the full `\.auto-ceph-work\/references\/test-case\/v306\.json`/);
   assert.match(e2eAgent, /The parent skill owns Jira description updates, comments, DONE transition, and follow-up ticket creation/);
   assert.match(selectHelper, /menu-list <target-case-json>/);

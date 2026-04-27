@@ -18,11 +18,13 @@ Required behavior:
 - For menu E2E mode, use the provided E2E ticket id, selected `menu1`, generated E2E scenario, E2E config, and compact selected menu test cases.
 - Use `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh` as the canonical Playwright CLI wrapper unless the parent prompt provides an explicit override.
 - Start the E2E flow from the config `url`, then log in with config `id` and `pw`.
-- Execute the Jira E2E scenario and use only the compact selected/related test cases as reference context for expected menu paths, procedures, and expected results.
+- Execute the Jira E2E scenario step by step; do not collapse it into a rough menu-level summary.
+- Use only the compact selected/related test cases as reference context for expected menu paths, procedures, and expected results.
 - Do not read or load the full `.auto-ceph-work/references/test-case/v306.json` into the agent context.
 - Do not edit helper, config, skill, or test-case files during execution.
 - Do not mutate Jira directly. The parent skill owns Jira description updates, comments, DONE transition, and follow-up ticket creation.
 - End with a machine-readable result that includes `status=passed|failed`, `ticket_id`, `summary`, `failure_reason`, `failed_step`, `expected`, `actual`, and `evidence`.
+- `failed_step` must identify the detailed scenario step number or feature/step name, not a broad menu name such as `오브젝트 확인`.
 - For `$auto-ceph-e2e`, also include `menu1` and `results[]`.
 - Each `results[]` item must include `feature_name`, `menu_path`, `status=passed|failed`, `failed_step`, `expected`, `actual`, `evidence`, and `failure_reason`.
 - For passed results, set failure fields to `none`; for failed results, make the failure fields specific enough for the parent approval skill to create a follow-up Jira ticket without asking the user.
