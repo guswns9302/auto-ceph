@@ -2274,6 +2274,7 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   const approvalSkill = readRepoFile(path.join(".codex", "skills", "auto-ceph-approval", "SKILL.md"));
   const e2eSkill = readRepoFile(path.join(".codex", "skills", "auto-ceph-e2e", "SKILL.md"));
   const e2eContract = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-execution-contract.md"));
+  const e2eCaseSelectionContract = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-case-selection-contract.md"));
   const tromboneContract = readRepoFile(path.join(".auto-ceph-work", "references", "trombone-deployment-contract.md"));
   const mrApprovalContract = readRepoFile(path.join(".auto-ceph-work", "references", "mr-approval-contract.md"));
   const jiraCreateTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "jira-create-template.md"));
@@ -2284,11 +2285,15 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   const tromboneHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"));
 
   assert.match(approvalSkill, /\.auto-ceph-work\/references\/e2e-execution-contract\.md/);
+  assert.match(approvalSkill, /\.auto-ceph-work\/references\/e2e-case-selection-contract\.md/);
   assert.match(approvalSkill, /\.auto-ceph-work\/references\/trombone-deployment-contract\.md/);
   assert.match(approvalSkill, /\.auto-ceph-work\/references\/mr-approval-contract\.md/);
   assert.doesNotMatch(approvalSkill, /11\. `\.auto-ceph-work\/scripts\/run_trombone_pipeline\.sh`/);
   assert.doesNotMatch(approvalSkill, /\d+\. `\.auto-ceph-work\/scripts\/approve_and_merge_review_mr\.js`/);
   assert.match(e2eSkill, /\.auto-ceph-work\/references\/e2e-execution-contract\.md/);
+  assert.match(e2eSkill, /\.auto-ceph-work\/references\/e2e-case-selection-contract\.md/);
+  assert.doesNotMatch(approvalSkill, /\d+\. `\.auto-ceph-work\/scripts\/select_e2e_cases\.js`/);
+  assert.doesNotMatch(e2eSkill, /\d+\. `\.auto-ceph-work\/scripts\/select_e2e_cases\.js`/);
   assert.match(approvalSkill, /\[ACW\] <원본 티켓> E2E 실패 후속 조치/);
   assert.match(e2eSkill, /\[ACW\] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>/);
   assert.match(approvalSkill, /e2e-execution-contract\.md`를 따른다/);
@@ -2308,6 +2313,17 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eContract, /orchestration\/system failure/);
   assert.match(e2eContract, /\$auto-ceph-approval[\s\S]*spawn -> terminal result wait -> result validation -> Jira 결과 처리 -> 다음 ticket spawn/);
   assert.match(e2eContract, /\$auto-ceph-e2e[\s\S]*menu-scoped E2E agent/);
+
+  assert.match(e2eCaseSelectionContract, /select_e2e_cases\.js menu-list <target-case-json>/);
+  assert.match(e2eCaseSelectionContract, /select_e2e_cases\.js select <target-case-json> <menu1>/);
+  assert.match(e2eCaseSelectionContract, /features\[\]\.steps\[\]\.menu_path\[0\]/);
+  assert.match(e2eCaseSelectionContract, /compact selected\/related cases/);
+  assert.match(e2eCaseSelectionContract, /feature_name/);
+  assert.match(e2eCaseSelectionContract, /procedure/);
+  assert.match(e2eCaseSelectionContract, /expected_result/);
+  assert.match(e2eCaseSelectionContract, /malformed JSON/);
+  assert.match(e2eCaseSelectionContract, /관련 케이스 없음/);
+  assert.match(e2eCaseSelectionContract, /v306\.json` 전체를 context에 넣으면 안 된다/);
 
   assert.match(tromboneContract, /run_trombone_pipeline\.sh <REPO> <CONFIG-FILE>/);
   assert.match(tromboneContract, /status=completed/);
@@ -2346,6 +2362,7 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
 
   assert.match(e2eSkill, /select_e2e_cases\.js menu-list <target-case-json>/);
   assert.match(e2eSkill, /select_e2e_cases\.js select <target-case-json> <menu1>/);
+  assert.match(e2eSkill, /e2e-case-selection-contract\.md`를 따른다/);
   assert.match(e2eSkill, /\[ACW E2E\] <menu1> E2E 테스트/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> start/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> end/);

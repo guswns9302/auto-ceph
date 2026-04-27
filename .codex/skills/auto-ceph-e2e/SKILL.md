@@ -25,7 +25,7 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 3. `.auto-ceph-work/references/e2e-execution-contract.md`
 4. `.auto-ceph-work/references/e2e-jira-ticket-template.md`
 5. `.auto-ceph-work/references/jira-create-template.md`
-6. `.auto-ceph-work/scripts/select_e2e_cases.js`
+6. `.auto-ceph-work/references/e2e-case-selection-contract.md`
 7. `.auto-ceph-work/scripts/update_jira_ticket_time_note.js`
 8. `.codex/agents/aceph-approval-e2e.toml`
 
@@ -33,7 +33,7 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 
 1. 무인자 실행만 지원한다. 티켓 ID나 메뉴 인자는 받지 않는다.
 2. 시작 즉시 E2E config의 `url`, `id`, `pw`, `타겟 케이스` 필드를 검증한다.
-3. `타겟 케이스`는 repo root 기준 상대 경로이며, `.auto-ceph-work/scripts/select_e2e_cases.js`로 파싱 가능해야 한다.
+3. `타겟 케이스`는 repo root 기준 상대 경로이며, `.auto-ceph-work/scripts/select_e2e_cases.js`로 파싱 가능해야 한다. case selection 세부 계약은 `.auto-ceph-work/references/e2e-case-selection-contract.md`를 따른다.
 4. `e2e-scenario-template.md`와 `e2e-jira-ticket-template.md`가 없으면 즉시 종료한다.
 5. 원본 target case JSON을 직접 읽지 않고 helper `menu-list` 결과로 `menu1` 목록을 만든다.
 6. 사용자에게 `e2e 테스트 메뉴를 골라주세요`라고 묻고 `menu1` 목록을 제시한다. 선택값이 목록에 없으면 올바른 메뉴를 다시 입력받는다.
