@@ -2208,6 +2208,16 @@ test("agent-facing docs explain pinned stage models without introducing sandbox 
   const readme = readRepoFile("README.md");
   const skill = readRepoFile(path.join(".codex", "skills", "auto-ceph", "SKILL.md"));
 
+  assert.match(readme, /Skill Overview/);
+  assert.match(readme, /\$auto-ceph-create[\s\S]*\$auto-ceph[\s\S]*\$auto-ceph-approval[\s\S]*\$auto-ceph-e2e/);
+  assert.match(readme, /TO DO -> IN PROGRESS -> RESOLVE/);
+  assert.match(readme, /RESOLVE -> REVIEW -> DONE/);
+  assert.match(readme, /TO DO -> IN PROGRESS -> DONE/);
+  assert.match(readme, /Generated Ticket Rules/);
+  assert.match(readme, /모든 Jira `Task`는 backlog에 두지 않고 `CDS` scrum board의 active sprint에 즉시 배정/);
+  assert.match(readme, /backlog fallback[\s\S]*허용하지 않음/);
+  assert.match(readme, /Follow-Up Ticket Rules/);
+  assert.match(readme, /remote-ceph-admin[\s\S]*ceph-service-api[\s\S]*ceph-api-gateway[\s\S]*ceph-service-scheduler/);
   assert.match(readme, /역할별 기본 `model`과 `model_reasoning_effort`가 고정/);
   assert.match(readme, /`sandbox_mode`는 명시하지 않아 상위 실행 환경 권한 정책을 그대로 따른다/);
   assert.match(skill, /역할별 기본 `model`과 `model_reasoning_effort`를 사용/);
