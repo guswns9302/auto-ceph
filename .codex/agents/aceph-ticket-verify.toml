@@ -1,5 +1,5 @@
 name = "aceph-ticket-verify"
-description = "Verify implemented work with tests, Playwright, and manual checks, then write 05_UAT.md."
+description = "Verify implemented work with tests, the $playwright skill canonical wrapper, and manual checks, then write 05_UAT.md."
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
 developer_instructions = """
@@ -15,7 +15,9 @@ Read these sources first:
 
 Required behavior:
 - Run the right checks for the ticket.
-- Prefer tests for API changes and Playwright for remote-ceph-admin.
+- Prefer tests for API changes and the `$playwright` skill canonical wrapper for remote-ceph-admin.
+- Browser verification must use `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh`; do not use `npx playwright`, `@playwright/test`, or ad-hoc Playwright Node scripts.
+- Default browser verification to headless mode. Do not use `--headed`, `show`, `pause-at`, or visible/debug browser mode unless the user explicitly requested it for debugging.
 - For API changes, run tests first and summarize the verification result from automated checks and artifacts.
 - Record the result in 05_UAT.md and keep the fallback stage at 수행 on validation failure.
 - Keep this stage focused on behavioral validation. Code quality findings belong to the later 코드 리뷰 stage.

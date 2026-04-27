@@ -73,7 +73,9 @@
 
 - `remote-ceph-admin`
   - 계획 단계에서 UI 계획 제외
-  - 검증 단계에서 Playwright 우선
+  - 검증 단계에서 `$playwright` skill canonical wrapper 우선
+  - 브라우저 검증은 `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh`만 사용하고 headless-by-default로 수행
+  - 사용자 명시 디버깅 요청 없이는 `--headed`, `show`, `pause-at`을 사용하지 않는다
 - API 변경
   - 검증 단계에서 테스트 우선
   - 계획 단계에서 테스트 기준과 완료 기준을 정리

@@ -80,7 +80,7 @@ case "$STAGE" in
     stage_transition_timing="검증 stage에서 보장"
     stage_result_transition="IN PROGRESS"
     if [ "${repo:-}" = "remote-ceph-admin" ]; then
-      extra_rules="repo 특례: remote-ceph-admin 이므로 Playwright 검증을 우선 사용하라."
+      extra_rules="repo 특례: remote-ceph-admin 이므로 \`\$playwright\` skill canonical wrapper(\`\$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh\`) 검증을 우선 사용하라. 브라우저 검증은 headless-by-default이며 \`--headed\`, \`show\`, \`pause-at\`은 사용자 명시 디버깅 요청 없이는 금지한다."
     fi
     ;;
   "코드 리뷰")

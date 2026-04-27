@@ -830,6 +830,9 @@ test("run_trombone_pipeline helper validates config and waits for completion", (
   assert.match(log, /trombone deployment failed/);
   assert.match(log, /pipeline history completion timeout/);
   assert.doesNotMatch(log, /wldhel11@#/);
+  assert.doesNotMatch(log, /--headed/);
+  assert.doesNotMatch(log, /\bshow\b/);
+  assert.doesNotMatch(log, /pause-at/);
 });
 
 test("run_trombone_pipeline helper fails without completed status on playwright errors", () => {
@@ -2270,6 +2273,25 @@ test("agent-facing docs explain pinned stage models without introducing sandbox 
   assert.match(skill, /`sandbox_mode`는 명시하지 않아 상위 실행 환경 정책을 상속한다/);
 });
 
+test("browser verification contracts use the playwright skill wrapper in headless mode", () => {
+  const verifyAgent = readRepoFile(path.join(".codex", "agents", "aceph-ticket-verify.toml"));
+  const verifyCommand = readRepoFile(path.join(".codex", "commands", "aceph", "verify-ticket.md"));
+  const verifyWorkflow = readRepoFile(path.join(".auto-ceph-work", "workflows", "verify-ticket.md"));
+  const workflowReference = readRepoFile(path.join(".auto-ceph-work", "references", "workflow.md"));
+  const promptBuilder = readRepoFile(path.join(".auto-ceph-work", "scripts", "build_stage_prompt.sh"));
+
+  for (const contents of [verifyAgent, verifyCommand, verifyWorkflow, workflowReference, promptBuilder]) {
+    assert.match(contents, /\$playwright/);
+    assert.match(contents, /playwright_cli\.sh/);
+    assert.match(contents, /headless/);
+    assert.match(contents, /--headed/);
+  }
+
+  assert.match(verifyAgent, /do not use `npx playwright`, `@playwright\/test`, or ad-hoc Playwright Node scripts/i);
+  assert.match(verifyCommand, /do not use `npx playwright`, `@playwright\/test`, or ad-hoc Playwright Node scripts/i);
+  assert.match(verifyWorkflow, /do not use `npx playwright`, `@playwright\/test`, or ad-hoc Playwright Node scripts/);
+});
+
 test("auto-ceph approval and e2e skills reference shared E2E and generated-ticket contracts", () => {
   const approvalSkill = readRepoFile(path.join(".codex", "skills", "auto-ceph-approval", "SKILL.md"));
   const e2eSkill = readRepoFile(path.join(".codex", "skills", "auto-ceph-e2e", "SKILL.md"));
@@ -2309,7 +2331,12 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
 
   assert.match(e2eContract, /wait_agent` timeout 또는 빈 status는 실패가 아니라 polling 결과/);
   assert.match(e2eContract, /terminal result 전에는 Jira `### E2E 테스트 결과`, E2E 댓글, `DONE` 전이, 후속 티켓 생성을 수행하면 안 된다/);
-  assert.match(e2eContract, /Playwright.*playwright_cli\.sh/);
+  assert.match(e2eContract, /\$playwright` skill의 canonical wrapper/);
+  assert.match(e2eContract, /\$CODEX_HOME\/skills\/playwright\/scripts\/playwright_cli\.sh/);
+  assert.match(e2eContract, /`npx playwright`, `@playwright\/test`, 임의 Playwright Node script 직접 실행은 금지/);
+  assert.match(e2eContract, /headless/);
+  assert.match(e2eContract, /`--headed`, `show`, `pause-at`/);
+  assert.match(e2eContract, /사람이 볼 수 있는 브라우저 창이 뜨면/);
   assert.match(e2eContract, /compact selected\/related cases/);
   assert.match(e2eContract, /원본 `\.auto-ceph-work\/references\/test-case\/v306\.json` 전체를 agent context에 넣지 않는다/);
   assert.match(e2eContract, /status=passed\|failed/);
@@ -2338,6 +2365,11 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(jiraTimeNoteContract, /helper non-zero exit/);
 
   assert.match(tromboneContract, /run_trombone_pipeline\.sh <REPO> <CONFIG-FILE>/);
+  assert.match(tromboneContract, /\$playwright` skill canonical wrapper/);
+  assert.match(tromboneContract, /\$CODEX_HOME\/skills\/playwright\/scripts\/playwright_cli\.sh/);
+  assert.match(tromboneContract, /Do not use `npx playwright`, `@playwright\/test`, or ad-hoc Playwright Node scripts/);
+  assert.match(tromboneContract, /Headless is the default/);
+  assert.match(tromboneContract, /Do not pass `--headed`, `show`, `pause-at`/);
   assert.match(tromboneContract, /status=completed/);
   assert.match(tromboneContract, /pipeline=<pipeline_prefix><repo>/);
   assert.match(tromboneContract, /Trombone 배포 실패 \(<pipeline>\)/);
@@ -2421,6 +2453,13 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.doesNotMatch(e2eAgent, /\.codex\/skills\/auto-ceph-approval\/SKILL\.md/);
   assert.doesNotMatch(e2eAgent, /\.codex\/skills\/auto-ceph-e2e\/SKILL\.md/);
   assert.match(e2eAgent, /Use the mode-specific input supplied by the parent prompt/);
+  assert.match(e2eAgent, /\$playwright` skill only through its canonical wrapper/);
+  assert.match(e2eAgent, /\$CODEX_HOME\/skills\/playwright\/scripts\/playwright_cli\.sh/);
+  assert.match(e2eAgent, /Run `run-code`, `open`, `snapshot`, `click`, `fill`/);
+  assert.match(e2eAgent, /Do not use `npx playwright`, `@playwright\/test`, or ad-hoc Playwright Node scripts/);
+  assert.match(e2eAgent, /Default to headless execution/);
+  assert.match(e2eAgent, /Do not use `--headed`, `show`, `pause-at`/);
+  assert.match(e2eAgent, /human-visible browser window appears/);
   assert.match(e2eAgent, /compact selected\/related test cases/);
   assert.match(e2eAgent, /step by step/);
   assert.match(e2eAgent, /do not collapse it into a rough menu-level summary/);

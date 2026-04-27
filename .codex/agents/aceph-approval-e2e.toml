@@ -16,7 +16,11 @@ Required behavior:
 - Use the mode-specific input supplied by the parent prompt and follow `.auto-ceph-work/references/e2e-execution-contract.md`.
 - For approval mode, use the provided ticket id and Jira description `### E2E 테스트 시나리오`.
 - For menu E2E mode, use the provided E2E ticket id, selected `menu1`, generated E2E scenario, E2E config, and compact selected menu test cases.
-- Use `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh` as the canonical Playwright CLI wrapper unless the parent prompt provides an explicit override.
+- Use the `$playwright` skill only through its canonical wrapper `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh`.
+- Run `run-code`, `open`, `snapshot`, `click`, `fill`, and every other browser command only through that wrapper.
+- Do not use `npx playwright`, `@playwright/test`, or ad-hoc Playwright Node scripts.
+- Default to headless execution. Do not use `--headed`, `show`, `pause-at`, or visible/debug browser mode unless the user explicitly requested it for debugging.
+- If a human-visible browser window appears, report it as an E2E execution mode violation.
 - Start the E2E flow from the config `url`, then log in with config `id` and `pw`.
 - Execute the Jira E2E scenario step by step; do not collapse it into a rough menu-level summary.
 - Use only the compact selected/related test cases as reference context for expected menu paths, procedures, and expected results.

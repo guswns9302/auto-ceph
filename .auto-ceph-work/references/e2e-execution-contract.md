@@ -11,9 +11,15 @@
 - pending/running E2E agent가 있으면 parent skill은 `final_answer`로 종료하면 안 된다.
 - terminal result 전에는 Jira `### E2E 테스트 결과`, E2E 댓글, `DONE` 전이, 후속 티켓 생성을 수행하면 안 된다.
 
+## Browser Execution
+
+- 모든 E2E 브라우저 실행은 `$playwright` skill의 canonical wrapper인 `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh`만 사용한다.
+- `npx playwright`, `@playwright/test`, 임의 Playwright Node script 직접 실행은 금지한다.
+- 기본 실행은 headless로 간주한다. 사용자가 별도로 디버깅을 명시 요청하지 않으면 `--headed`, `show`, `pause-at` 같은 visible/debug browser 동작을 사용하면 안 된다.
+- 사람이 볼 수 있는 브라우저 창이 뜨면 Auto-Ceph E2E 실행 방식 위반으로 보고해야 한다.
+
 ## Agent Input
 
-- Playwright 실행은 `$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh` wrapper를 사용한다.
 - E2E flow는 항상 E2E config의 `url` 접속, `id/pw` 로그인으로 시작한다.
 - agent 입력에는 E2E 시나리오, `.auto-ceph-work/references/e2e-test-config.md`, Playwright wrapper 경로, helper가 반환한 compact selected/related cases를 포함한다.
 - 원본 `.auto-ceph-work/references/test-case/v306.json` 전체를 agent context에 넣지 않는다.
