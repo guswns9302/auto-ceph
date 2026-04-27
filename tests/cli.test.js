@@ -54,6 +54,7 @@ function makeSourceTree(rootDir) {
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "return_to_dev_branch.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js"), '"use strict";\n');
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js"), '"use strict";\n');
+  write(path.join(rootDir, ".auto-ceph-work", "scripts", "select_e2e_cases.js"), '"use strict";\n');
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"), '"use strict";\n');
   write(path.join(rootDir, ".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"), "#!/usr/bin/env bash\n");
   write(path.join(rootDir, ".auto-ceph-work", "hooks", "aceph-prompt-guard.js"), "console.log('prompt');\n");
@@ -140,6 +141,7 @@ test("cli install routes to the installer and uses package version by default", 
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "skills", "auto-ceph-e2e", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".codex", "hooks.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "select_e2e_cases.js")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md")));
   assert.equal(fs.existsSync(path.join(projectRoot, "doc", "_templates")), false);
@@ -284,6 +286,41 @@ test("resolve_atlassian_identity returns empty username when config is missing",
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^config_not_found=1$/m);
   assert.match(result.stdout, /^jira_username=''$/m);
+});
+
+test("select_e2e_cases helper lists menu1 values and returns selected compact cases", () => {
+  const helper = path.join(__dirname, "..", ".auto-ceph-work", "scripts", "select_e2e_cases.js");
+  const targetCase = path.join(__dirname, "..", ".auto-ceph-work", "references", "test-case", "v306.json");
+
+  const menuList = runNode(helper, ["menu-list", targetCase], path.join(__dirname, ".."));
+  assert.equal(menuList.status, 0, menuList.stderr);
+  const menus = JSON.parse(menuList.stdout).menus;
+  assert.equal(menus.length, 12);
+  assert.ok(menus.includes("블록"));
+
+  const selected = runNode(helper, ["select", targetCase, "블록"], path.join(__dirname, ".."));
+  assert.equal(selected.status, 0, selected.stderr);
+  const selectedCases = JSON.parse(selected.stdout);
+  assert.equal(selectedCases.menu1, "블록");
+  assert.ok(selectedCases.features.length > 0);
+  for (const feature of selectedCases.features) {
+    assert.deepEqual(Object.keys(feature).sort(), ["category", "feature_name", "steps"]);
+    for (const step of feature.steps) {
+      assert.equal(step.menu_path[0], "블록");
+      assert.deepEqual(Object.keys(step).sort(), ["expected_result", "menu_path", "procedure"]);
+    }
+  }
+
+  const missing = runNode(helper, ["select", targetCase, "없는 메뉴"], path.join(__dirname, ".."));
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /no test cases found/);
+
+  const rootDir = makeTempDir("aceph-e2e-cases-");
+  const malformed = path.join(rootDir, "bad.json");
+  write(malformed, "{bad");
+  const invalid = runNode(helper, ["menu-list", malformed], rootDir);
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /failed to read or parse target case JSON/);
 });
 
 test("create_or_reuse_merge_request helper reuses an existing open MR", () => {
@@ -2231,13 +2268,14 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   const e2eConfig = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-test-config.md"));
   const e2eTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-scenario-template.md"));
   const e2eAgent = readRepoFile(path.join(".codex", "agents", "aceph-approval-e2e.toml"));
+  const selectHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "select_e2e_cases.js"));
   const mrHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "approve_and_merge_review_mr.js"));
   const tromboneHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"));
 
   assert.match(skill, /`RESOLVE` 티켓을 찾는다/);
   assert.match(skill, /`url`, `id`, `pw`, `타겟 케이스` 필드/);
   assert.match(skill, /`타겟 케이스` 값은 repo root 기준 상대 경로/);
-  assert.match(skill, /파일이 없거나 JSON 파싱이 실패하면 즉시 종료/);
+  assert.match(skill, /select_e2e_cases\.js`가 JSON 파싱에 실패하면 즉시 종료/);
   assert.match(skill, /statusCategory = "In Progress".*넓은 조건으로 대체하지 않는다/);
   assert.match(skill, /제외할 티켓 ID를 한 번만 입력받는다/);
   assert.match(skill, /Jira 상태를 `RESOLVE`에서 `REVIEW`로 변경/);
@@ -2249,7 +2287,8 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(skill, /MR approve 전에 각 대상 티켓의 Jira description에 top-level `### E2E 테스트 시나리오` 섹션/);
   assert.match(skill, /위치는 `### 개선 방향` 다음, `### 작업 노트` 이전/);
   assert.match(skill, /첫 단계는 항상 E2E config의 `url`로 접속하고 `id`와 `pw`를 입력해 로그인/);
-  assert.match(skill, /`타겟 케이스` JSON의 관련 케이스를 선택 및 조합/);
+  assert.match(skill, /select_e2e_cases\.js select <target-case-json> <menu1>`가 반환한 compact related cases/);
+  assert.match(skill, /원본 `v306\.json` 전체를 읽지 말고 “관련 케이스 없음”/);
   assert.match(skill, /Jira 상태가 `REVIEW`로 전이된 티켓에 대해서만 호출/);
   assert.match(skill, /MR approve 및 dev merge를 순차 처리한다/);
   assert.match(skill, /모든 대상 티켓의 MR batch가 성공적으로 끝난 뒤 한 번만 수행한다/);
@@ -2273,6 +2312,8 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(skill, /terminal subagent status를 반환할 때까지 같은 agent id를 계속 추적/);
   assert.match(skill, /pending\/running E2E agent가 하나라도 있으면 approval 메인 세션은 `final_answer`로 종료하면 안 된다/);
   assert.match(skill, /terminal result를 반환하기 전에는 Jira `### E2E 테스트 결과`, E2E 댓글, 원본 티켓 `DONE` 전이, 후속 티켓 생성으로 넘어가면 안 된다/);
+  assert.match(skill, /helper가 반환한 compact related cases 또는 “관련 케이스 없음”/);
+  assert.match(skill, /원본 `v306\.json` 전체를 agent context에 넣지 않는다/);
   assert.match(skill, /`status=passed\|failed`, `ticket_id`, `summary`, `failure_reason`, `failed_step`, `expected`, `actual`, `evidence`/);
   assert.match(skill, /terminal result가 malformed이거나 `ticket_id`가 기대 티켓과 다르면 E2E 실패가 아니라 orchestration\/system failure/);
   assert.match(skill, /`spawn -> terminal result wait -> result validation -> Jira 결과 처리 -> 다음 티켓 spawn`/);
@@ -2315,12 +2356,16 @@ test("auto-ceph-approval skill defines MR, Trombone, E2E, and DONE flow", () => 
   assert.match(e2eAgent, /model = "gpt-5\.5"/);
   assert.match(e2eAgent, /model_reasoning_effort = "medium"/);
   assert.match(e2eAgent, /playwright_cli\.sh/);
-  assert.match(e2eAgent, /target case JSON/);
+  assert.match(e2eAgent, /compact selected\/related test cases/);
+  assert.match(e2eAgent, /Do not read or load the full `\.auto-ceph-work\/references\/test-case\/v306\.json`/);
   assert.match(e2eAgent, /failure_reason/);
   assert.match(e2eAgent, /failed_step/);
   assert.match(e2eAgent, /expected/);
   assert.match(e2eAgent, /actual/);
   assert.match(e2eAgent, /Do not edit helper, config, skill, or test-case files/);
+  assert.match(selectHelper, /menu-list <target-case-json>/);
+  assert.match(selectHelper, /select <target-case-json> <menu1>/);
+  assert.match(selectHelper, /features\[\]\.steps\[\]\.menu_path\[0\]/);
   assert.match(mrHelper, /mr",\s+"approve"/);
   assert.match(mrHelper, /mr",\s+"merge"/);
   assert.match(mrHelper, /mr",\s+"view"/);
@@ -2350,10 +2395,12 @@ test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", ()
   const e2eAgent = readRepoFile(path.join(".codex", "agents", "aceph-approval-e2e.toml"));
 
   assert.match(skill, /무인자 실행만 지원/);
-  assert.match(skill, /`features\[\]\.steps\[\]\.menu_path\[0\]`에서 `menu1` 목록/);
+  assert.match(skill, /select_e2e_cases\.js menu-list <target-case-json>/);
   assert.match(skill, /e2e 테스트 메뉴를 골라주세요/);
   assert.match(skill, /사용자가 선택한 메뉴가 `menu1` 목록에 없으면/);
-  assert.match(skill, /선택된 `menu1`에 속한 모든 feature와 step/);
+  assert.match(skill, /select_e2e_cases\.js select <target-case-json> <menu1>/);
+  assert.match(skill, /compact selected cases/);
+  assert.match(skill, /원본 `v306\.json` 전체를 agent context에 넣지 않는다/);
   assert.match(skill, /`#### 테스트 시나리오`, `#### 기대 결과`, `#### 확인 범위`/);
   assert.match(skill, /첫 단계는 항상 E2E config의 `url`로 접속하고 `id`와 `pw`를 입력해 로그인/);
   assert.match(skill, /`project_key="CDS"`, `issue_type="Task"`/);
@@ -2365,6 +2412,7 @@ test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", ()
   assert.match(skill, /`IN PROGRESS`로 전이/);
   assert.match(skill, /update_jira_ticket_time_note\.js <description-file> start/);
   assert.match(skill, /E2E agent 입력에는 E2E 실행 티켓 ID, 선택된 `menu1`/);
+  assert.match(skill, /helper가 반환한 compact selected cases/);
   assert.match(skill, /agent id를 E2E 실행 티켓 ID와 함께 기록/);
   assert.match(skill, /`wait_agent` timeout 또는 빈 status는 실패가 아니라 단순 polling 결과/);
   assert.match(skill, /terminal subagent status를 반환할 때까지 같은 agent id를 계속 추적/);
@@ -2399,6 +2447,8 @@ test("auto-ceph-e2e skill defines menu-scoped E2E ticket and follow-up flow", ()
   assert.match(e2eAgent, /Auto-Ceph E2E agent/);
   assert.match(e2eAgent, /\$auto-ceph-e2e/);
   assert.match(e2eAgent, /selected `menu1`/);
+  assert.match(e2eAgent, /compact selected menu test cases/);
+  assert.match(e2eAgent, /Do not read or load the full `\.auto-ceph-work\/references\/test-case\/v306\.json`/);
   assert.match(e2eAgent, /results\[\]/);
   assert.match(e2eAgent, /feature_name/);
   assert.match(e2eAgent, /menu_path/);

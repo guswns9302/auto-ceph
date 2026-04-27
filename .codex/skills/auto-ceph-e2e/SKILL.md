@@ -11,9 +11,9 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 
 - `$auto-ceph-e2e`
   - 무인자 실행만 지원한다.
-  - `.auto-ceph-work/references/test-case/v306.json`의 `features[].steps[].menu_path[0]`에서 `menu1` 목록을 수집한다.
+  - `.auto-ceph-work/scripts/select_e2e_cases.js menu-list <target-case-json>`로 `menu1` 목록을 수집한다.
   - 사용자에게 `e2e 테스트 메뉴를 골라주세요`라고 묻고 `menu1` 목록을 제시한다.
-  - 사용자가 선택한 메뉴의 모든 기능/step을 조합해 E2E 시나리오를 작성한다.
+  - `.auto-ceph-work/scripts/select_e2e_cases.js select <target-case-json> <menu1>` 결과만 사용해 선택 메뉴의 모든 기능/step을 조합하고 E2E 시나리오를 작성한다.
   - E2E 실행 Jira 티켓을 만들고 `TO DO -> IN PROGRESS -> DONE` 흐름으로 테스트 결과를 기록한다.
   - 실패 기능/케이스마다 후속 `[ACW]` Jira 티켓을 자동 생성한다.
 
@@ -23,7 +23,7 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 
 1. `.auto-ceph-work/references/e2e-test-config.md`
 2. `.auto-ceph-work/references/e2e-scenario-template.md`
-3. `.auto-ceph-work/references/test-case/v306.json`
+3. `.auto-ceph-work/scripts/select_e2e_cases.js`
 4. `.auto-ceph-work/references/e2e-jira-ticket-template.md`
 5. `.auto-ceph-work/references/jira-ticket-template.md`
 6. `.auto-ceph-work/references/jira-create-template.md`
@@ -35,15 +35,15 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 
 1. 무인자 실행만 지원한다. 티켓 ID나 메뉴 인자는 받지 않는다.
 2. 시작 즉시 `.auto-ceph-work/references/e2e-test-config.md`가 존재하는지 확인하고 `url`, `id`, `pw`, `타겟 케이스` 필드가 채워져 있는지 확인한다.
-3. `타겟 케이스` 값은 repo root 기준 상대 경로로 해석하며 기본값은 `.auto-ceph-work/references/test-case/v306.json`이다. 파일이 없거나 JSON 파싱이 실패하면 즉시 종료한다.
+3. `타겟 케이스` 값은 repo root 기준 상대 경로로 해석하며 기본값은 `.auto-ceph-work/references/test-case/v306.json`이다. 파일이 없거나 `.auto-ceph-work/scripts/select_e2e_cases.js`가 JSON 파싱에 실패하면 즉시 종료한다.
 4. `.auto-ceph-work/references/e2e-scenario-template.md`와 `.auto-ceph-work/references/e2e-jira-ticket-template.md`가 없으면 즉시 종료한다.
-5. target case JSON의 `features[].steps[].menu_path[0]` 값을 중복 제거해 `menu1` 목록으로 만든다.
+5. target case JSON 원본을 직접 읽지 않고 `.auto-ceph-work/scripts/select_e2e_cases.js menu-list <target-case-json>`의 JSON 결과만 사용해 `menu1` 목록을 만든다.
 6. 사용자에게 `e2e 테스트 메뉴를 골라주세요`라고 묻고 `menu1` 목록을 제시한다.
 7. 사용자가 선택한 메뉴가 `menu1` 목록에 없으면 올바른 메뉴를 다시 입력받는다.
-8. 선택된 `menu1`에 속한 모든 feature와 step을 E2E 대상 범위로 확정한다.
+8. `.auto-ceph-work/scripts/select_e2e_cases.js select <target-case-json> <menu1>`를 호출해 선택된 `menu1`의 compact selected cases를 만들고, 이 subset에 포함된 모든 feature와 step만 E2E 대상 범위로 확정한다.
 9. E2E 시나리오는 `.auto-ceph-work/references/e2e-scenario-template.md`의 구조를 따르며 `#### 테스트 시나리오`, `#### 기대 결과`, `#### 확인 범위`만 포함한다.
 10. `#### 테스트 시나리오`의 첫 단계는 항상 E2E config의 `url`로 접속하고 `id`와 `pw`를 입력해 로그인하는 흐름이어야 한다.
-11. 이후 단계는 선택된 `menu1`의 모든 기능/step, `procedure`, `expected_result`를 조합해 메뉴 전체 기능을 검증하는 흐름으로 작성한다.
+11. 이후 단계는 helper가 반환한 compact selected cases의 모든 기능/step, `procedure`, `expected_result`를 조합해 메뉴 전체 기능을 검증하는 흐름으로 작성한다.
 12. E2E 실행 티켓은 Atlassian MCP `jira_create_issue`로 생성하고 `project_key="CDS"`, `issue_type="Task"`를 사용한다.
 13. E2E 실행 티켓 제목은 `[ACW E2E] <menu1> E2E 테스트` 형식으로 고정한다.
 14. E2E 실행 티켓 description은 `.auto-ceph-work/references/e2e-jira-ticket-template.md` 구조를 따르고, 선택 메뉴, target case path, `### E2E 테스트 시나리오`, 빈 `### E2E 테스트 결과`, `### 작업 노트`를 포함해야 한다.
@@ -52,7 +52,7 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 17. E2E 실행 티켓 생성 직후 상태가 `TO DO`가 아니면 Atlassian MCP로 `TO DO` 전이를 수행한다.
 18. E2E 실행 티켓을 `IN PROGRESS`로 전이한 뒤 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> start`로 `티켓 시작 시간`을 기록한다.
 19. E2E 테스트는 `.codex/agents/aceph-approval-e2e.toml` custom agent를 spawn해 수행한다.
-20. E2E agent 입력에는 E2E 실행 티켓 ID, 선택된 `menu1`, 생성한 E2E 시나리오, `.auto-ceph-work/references/e2e-test-config.md`, target case JSON, 선택 메뉴의 test cases, Playwright CLI wrapper 경로를 포함한다.
+20. E2E agent 입력에는 E2E 실행 티켓 ID, 선택된 `menu1`, 생성한 E2E 시나리오, `.auto-ceph-work/references/e2e-test-config.md`, helper가 반환한 compact selected cases, Playwright CLI wrapper 경로를 포함한다. 원본 `v306.json` 전체를 agent context에 넣지 않는다.
 21. E2E agent spawn 직후 반환된 agent id를 E2E 실행 티켓 ID와 함께 기록하고, 이후 wait는 반드시 같은 agent id를 대상으로 수행한다.
 22. E2E agent spawn 이후 `wait_agent` timeout 또는 빈 status는 실패가 아니라 단순 polling 결과로만 취급한다.
 23. E2E agent가 완료, 실패, blocked 같은 terminal subagent status를 반환할 때까지 같은 agent id를 계속 추적하고 다시 기다려야 한다.
@@ -85,8 +85,8 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 ## User-Facing Contract
 
 - 사용자는 `$auto-ceph-e2e`만 호출한다.
-- 실행 시작 시 `menu1` 목록을 보여주고 E2E 테스트 메뉴를 한 번 선택받는다.
-- 선택 메뉴의 모든 기능/step을 대상으로 E2E 시나리오를 작성한다.
+- 실행 시작 시 helper `menu-list` 결과로 `menu1` 목록을 보여주고 E2E 테스트 메뉴를 한 번 선택받는다.
+- helper `select` 결과인 compact selected cases만 사용해 선택 메뉴의 모든 기능/step을 대상으로 E2E 시나리오를 작성한다.
 - 생성되는 E2E 실행 티켓 제목은 `[ACW E2E] <menu1> E2E 테스트`다.
 - E2E 실행 티켓은 생성 직후 `CDS` active sprint에 즉시 배정하며, active sprint가 정확히 1개가 아니거나 배정 실패 시 backlog fallback 없이 실패로 보고한다.
 - E2E 실행 티켓은 `TO DO`로 생성된 뒤 `IN PROGRESS`로 전이되고 `티켓 시작 시간`을 기록한다.
