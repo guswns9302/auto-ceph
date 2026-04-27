@@ -46,6 +46,10 @@ function makeSourceTree(rootDir) {
     "#### 테스트 시나리오\n#### 기대 결과\n#### 확인 범위\n"
   );
   write(
+    path.join(rootDir, ".auto-ceph-work", "references", "e2e-execution-contract.md"),
+    "# E2E Execution Contract\n"
+  );
+  write(
     path.join(rootDir, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md"),
     "# [ACW E2E] <menu1> E2E 테스트\n### E2E 테스트 결과\n"
   );
@@ -137,6 +141,7 @@ test("installProject copies assets and patches local .codex/config.toml", () => 
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "templates", "03_PLAN.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-test-config.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-scenario-template.md")));
+  assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-execution-contract.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "e2e-jira-ticket-template.md")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "references", "test-case", "v306.json")));
   assert.ok(fs.existsSync(path.join(projectRoot, ".auto-ceph-work", "scripts", "create_or_reuse_merge_request.js")));
