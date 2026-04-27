@@ -54,7 +54,7 @@ $auto-ceph-e2e
 | Skill | 주요 흐름 |
 | --- | --- |
 | `$auto-ceph-create` | 문제점 확정 -> 개선 방향 확정 -> Jira preview -> Jira `Task` 생성 -> active sprint 배정 |
-| `$auto-ceph` | 문제 확인 -> 문제 검토 -> 계획 -> 수행 -> 검증 -> 코드 리뷰 -> 리뷰 요청 |
+| `$auto-ceph` | 문제 확인 -> 문제 검토 -> 계획 -> 수행 -> 검증 -> 코드 리뷰 -> 리뷰 요청(MR) |
 | `$auto-ceph-approval` | `RESOLVE` 티켓 조회 -> 제외 입력 -> `REVIEW` 전이 -> MR approve/dev merge -> Trombone 완료 -> E2E 실행 -> `DONE` 전이 -> 실패 후속 티켓 생성 |
 | `$auto-ceph-e2e` | E2E 메뉴 선택 -> 시나리오 작성 -> E2E 실행 티켓 생성 -> E2E agent 실행 -> 결과 기록 -> `DONE` 전이 -> 실패 기능별 후속 티켓 생성 |
 
@@ -76,7 +76,7 @@ $auto-ceph-e2e
 - `$auto-ceph`: 내 할당 Jira `TO DO` 티켓 중 `[ACW]` + repo 일치 후보를 생성일 오름차순으로 순차 처리한다.
 - `$auto-ceph <TICKET-ID>`: 지정 티켓의 현재 단계를 판정하고 남은 workflow를 이어간다.
 - `문제 확인`부터 `코드 리뷰`까지는 Jira 상태를 `IN PROGRESS`로 유지한다.
-- `리뷰 요청` 완료 시 Jira 상태는 `RESOLVE`가 된다.
+- `리뷰 요청(MR)` 완료 시 Jira 상태는 `RESOLVE`가 된다.
 
 ### `$auto-ceph-approval`
 
@@ -108,18 +108,6 @@ $auto-ceph-e2e
 | `$auto-ceph-approval` 승인/배포/E2E 처리 | `RESOLVE -> REVIEW -> DONE` |
 | `$auto-ceph-e2e` 독립 E2E 실행 티켓 | `TO DO -> IN PROGRESS -> DONE` |
 
-`$auto-ceph` stage별 Jira 상태는 아래 기준을 따른다.
-
-| Stage | Jira 상태 |
-| --- | --- |
-| 문제 확인 | `IN PROGRESS` |
-| 문제 검토 | `IN PROGRESS` |
-| 계획 | `IN PROGRESS` |
-| 수행 | `IN PROGRESS` |
-| 검증 | `IN PROGRESS` |
-| 코드 리뷰 | `IN PROGRESS` |
-| 리뷰 요청 | `RESOLVE` |
-
 ## 생성 티켓 규칙
 
 Auto-Ceph가 생성하는 모든 Jira `Task`는 backlog에 남기지 않고 `CDS` scrum board의 active sprint에 즉시 배정한다.
@@ -147,7 +135,7 @@ E2E 실패가 확인되면 Auto-Ceph가 실패 원인을 판단해 후속 Jira `
 | `$auto-ceph-approval` | `[ACW] <원본 티켓> E2E 실패 후속 조치` | 실패 원본 티켓별 1개 |
 | `$auto-ceph-e2e` | `[ACW] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>` | 실패 기능/케이스별 1개 |
 
-후속 티켓의 `remote`는 `origin`으로 고정하고, 실패 원인에 따라 `repo`를 자동 판정한다.
+후속 티켓은 실패 원인에 따라 `repo`를 자동 판정한다.
 
 | repo | 주요 기준 |
 | --- | --- |

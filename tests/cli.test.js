@@ -2612,11 +2612,15 @@ test("agent-facing docs explain pinned stage models without introducing sandbox 
   assert.match(readme, /TO DO -> IN PROGRESS -> RESOLVE/);
   assert.match(readme, /RESOLVE -> REVIEW -> DONE/);
   assert.match(readme, /TO DO -> IN PROGRESS -> DONE/);
+  assert.match(readme, /코드 리뷰 -> 리뷰 요청\(MR\)/);
   assert.match(readme, /생성 티켓 규칙/);
   assert.match(readme, /모든 Jira `Task`는 backlog에 남기지 않고 `CDS` scrum board의 active sprint에 즉시 배정/);
   assert.match(readme, /backlog fallback[\s\S]*허용하지 않음/);
   assert.match(readme, /E2E 후속 티켓/);
+  assert.match(readme, /후속 티켓은 실패 원인에 따라 `repo`를 자동 판정한다/);
   assert.match(readme, /remote-ceph-admin[\s\S]*ceph-service-api[\s\S]*ceph-api-gateway[\s\S]*ceph-service-scheduler/);
+  assert.doesNotMatch(readme, /stage별 Jira 상태/);
+  assert.doesNotMatch(readme, /후속 티켓의 `remote`는 `origin`/);
   assert.doesNotMatch(readme, /## Repository Layout/);
   assert.doesNotMatch(readme, /## Release/);
   assert.doesNotMatch(readme, /## Retry And Terminal Rules/);
