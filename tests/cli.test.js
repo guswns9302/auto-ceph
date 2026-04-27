@@ -2158,7 +2158,11 @@ test("build_stage_prompt reflects stage-specific jira target states", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Jira target state: RESOLVE/);
   assert.match(result.stdout, /jira_status_transition_applied: RESOLVE/);
-  assert.match(result.stdout, /glab/);
+  assert.match(result.stdout, /review-request-ticket\.md/);
+  assert.match(result.stdout, /runtime-contract\.md/);
+  assert.match(result.stdout, /runtime-orchestration\.md/);
+  assert.match(result.stdout, /commit_and_push_ticket_branch\.sh/);
+  assert.match(result.stdout, /create_or_reuse_merge_request\.js/);
   assert.match(result.stdout, /## Merge Request/);
   assert.match(result.stdout, /description_merge_request=07_SUMMARY\.md excerpt synced/);
   assert.match(result.stdout, /description_loop_history=08_LOOP\.md synced/);
