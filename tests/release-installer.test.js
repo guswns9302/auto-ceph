@@ -10,6 +10,7 @@ const {
   INSTALL_META_FILE,
   MANAGED_BLOCK_END,
   MANAGED_BLOCK_START,
+  cleanupEmptyParents,
   ensureCodexHooksFeature,
   getPackageVersion,
   installProject,
@@ -280,6 +281,21 @@ test("uninstallProject removes managed assets and local config block only", () =
   assert.equal(hooksJson.hooks.PreToolUse.length, 1);
   assert.equal(hooksJson.hooks.PreToolUse[0].matcher, "Bash");
   assert.equal(hooksJson.hooks.PreToolUse[0].hooks[0].command, "node \"/tmp/user-hook.js\"");
+});
+
+test("cleanupEmptyParents does not remove sibling paths outside the project root", () => {
+  const parentRoot = makeTempDir("aceph-parent-");
+  const projectRoot = path.join(parentRoot, "project");
+  const siblingRoot = path.join(parentRoot, "project-other");
+  const siblingChild = path.join(siblingRoot, "nested");
+  fs.mkdirSync(path.join(projectRoot, ".codex"), { recursive: true });
+  fs.mkdirSync(siblingChild, { recursive: true });
+
+  cleanupEmptyParents(projectRoot, path.join(siblingChild, "removed.txt"));
+
+  assert.equal(fs.existsSync(siblingChild), true);
+  assert.equal(fs.existsSync(siblingRoot), true);
+  assert.equal(fs.existsSync(projectRoot), true);
 });
 
 function escapeForRegExp(value) {

@@ -27,6 +27,9 @@ const INJECTION_PATTERNS = [
 const TARGET_PREFIXES = [
   ".auto-ceph-work/tickets/",
   ".codex/skills/auto-ceph/",
+  ".codex/skills/auto-ceph-create/",
+  ".codex/skills/auto-ceph-approval/",
+  ".codex/skills/auto-ceph-e2e/",
   ".auto-ceph-work/workflows/",
   ".auto-ceph-work/references/",
   ".codex/commands/aceph/",
@@ -77,14 +80,6 @@ function isTargetPath(relativePath) {
 }
 
 function isGuardTarget(target) {
-  if (target.scope === "canonical") {
-    return [
-      "commands/",
-      "workflows/",
-      "agents/",
-      "references/",
-    ].some((prefix) => target.relative.startsWith(prefix));
-  }
   return isTargetPath(target.relative);
 }
 

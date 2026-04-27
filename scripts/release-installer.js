@@ -569,8 +569,9 @@ function installProject(options) {
 }
 
 function cleanupEmptyParents(projectRoot, filePath) {
+  const root = path.resolve(projectRoot);
   let current = path.dirname(filePath);
-  while (current.startsWith(projectRoot) && current !== projectRoot) {
+  while (isPathInside(root, current) && current !== root) {
     if (!fs.existsSync(current)) {
       current = path.dirname(current);
       continue;
@@ -584,6 +585,11 @@ function cleanupEmptyParents(projectRoot, filePath) {
     fs.rmdirSync(current);
     current = path.dirname(current);
   }
+}
+
+function isPathInside(rootDir, targetPath) {
+  const relative = path.relative(rootDir, path.resolve(targetPath));
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 function readInstallMetadata(projectRoot) {
@@ -690,6 +696,7 @@ module.exports = {
   MANAGED_BLOCK_START,
   buildManagedConfigBlock,
   buildManagedPaths,
+  cleanupEmptyParents,
   ensureCodexHooksFeature,
   getPackageVersion,
   getLocalCodexHooksPath,

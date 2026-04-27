@@ -45,7 +45,15 @@ function getFilePath(data) {
 function isGuardedPath(relativePath) {
   const ignoredPrefixes = [
     ".git/",
+    ".cache/",
+    ".next/",
+    ".playwright-cli/",
+    "build/",
+    "coverage/",
+    "dist/",
     "node_modules/",
+    "output/",
+    "target/",
   ];
   return !ignoredPrefixes.some((prefix) => relativePath.startsWith(prefix));
 }
