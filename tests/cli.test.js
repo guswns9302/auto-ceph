@@ -2275,6 +2275,7 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   const e2eSkill = readRepoFile(path.join(".codex", "skills", "auto-ceph-e2e", "SKILL.md"));
   const e2eContract = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-execution-contract.md"));
   const e2eCaseSelectionContract = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-case-selection-contract.md"));
+  const jiraTimeNoteContract = readRepoFile(path.join(".auto-ceph-work", "references", "jira-time-note-contract.md"));
   const tromboneContract = readRepoFile(path.join(".auto-ceph-work", "references", "trombone-deployment-contract.md"));
   const mrApprovalContract = readRepoFile(path.join(".auto-ceph-work", "references", "mr-approval-contract.md"));
   const jiraCreateTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "jira-create-template.md"));
@@ -2292,8 +2293,10 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.doesNotMatch(approvalSkill, /\d+\. `\.auto-ceph-work\/scripts\/approve_and_merge_review_mr\.js`/);
   assert.match(e2eSkill, /\.auto-ceph-work\/references\/e2e-execution-contract\.md/);
   assert.match(e2eSkill, /\.auto-ceph-work\/references\/e2e-case-selection-contract\.md/);
+  assert.match(e2eSkill, /\.auto-ceph-work\/references\/jira-time-note-contract\.md/);
   assert.doesNotMatch(approvalSkill, /\d+\. `\.auto-ceph-work\/scripts\/select_e2e_cases\.js`/);
   assert.doesNotMatch(e2eSkill, /\d+\. `\.auto-ceph-work\/scripts\/select_e2e_cases\.js`/);
+  assert.doesNotMatch(e2eSkill, /\d+\. `\.auto-ceph-work\/scripts\/update_jira_ticket_time_note\.js`/);
   assert.match(approvalSkill, /\[ACW\] <원본 티켓> E2E 실패 후속 조치/);
   assert.match(e2eSkill, /\[ACW\] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>/);
   assert.match(approvalSkill, /e2e-execution-contract\.md`를 따른다/);
@@ -2324,6 +2327,14 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eCaseSelectionContract, /malformed JSON/);
   assert.match(e2eCaseSelectionContract, /관련 케이스 없음/);
   assert.match(e2eCaseSelectionContract, /v306\.json` 전체를 context에 넣으면 안 된다/);
+
+  assert.match(jiraTimeNoteContract, /update_jira_ticket_time_note\.js <description-file> start/);
+  assert.match(jiraTimeNoteContract, /update_jira_ticket_time_note\.js <description-file> end/);
+  assert.match(jiraTimeNoteContract, /티켓 시작 시간/);
+  assert.match(jiraTimeNoteContract, /티켓 종료 시간/);
+  assert.match(jiraTimeNoteContract, /최신 Jira description/);
+  assert.match(jiraTimeNoteContract, /stage block보다 먼저/);
+  assert.match(jiraTimeNoteContract, /helper non-zero exit/);
 
   assert.match(tromboneContract, /run_trombone_pipeline\.sh <REPO> <CONFIG-FILE>/);
   assert.match(tromboneContract, /status=completed/);
@@ -2366,6 +2377,7 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eSkill, /\[ACW E2E\] <menu1> E2E 테스트/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> start/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> end/);
+  assert.match(e2eSkill, /jira-time-note-contract\.md`를 따른다/);
   assert.match(e2eSkill, /`기능`, `E2E 결과`, `실패 원인`, `후속 티켓`/);
 
   assert.match(ticketTemplate, /\[ACW E2E\] <menu1> E2E 테스트/);

@@ -26,7 +26,7 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 4. `.auto-ceph-work/references/e2e-jira-ticket-template.md`
 5. `.auto-ceph-work/references/jira-create-template.md`
 6. `.auto-ceph-work/references/e2e-case-selection-contract.md`
-7. `.auto-ceph-work/scripts/update_jira_ticket_time_note.js`
+7. `.auto-ceph-work/references/jira-time-note-contract.md`
 8. `.codex/agents/aceph-approval-e2e.toml`
 
 ## Runtime Rules
@@ -43,7 +43,7 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 10. E2E 실행 티켓은 Atlassian MCP `jira_create_issue`로 `project_key="CDS"`, `issue_type="Task"`, 제목 `[ACW E2E] <menu1> E2E 테스트`로 생성한다.
 11. E2E 실행 티켓 description은 `e2e-jira-ticket-template.md` 구조를 따르고, 선택 메뉴, target case path, `### E2E 테스트 시나리오`, 빈 `### E2E 테스트 결과`, `### 작업 노트`를 포함한다.
 12. E2E 실행 티켓 생성 직후 active sprint 배정과 `TO DO` 전이는 `.auto-ceph-work/references/jira-create-template.md`를 따른다.
-13. E2E 실행 티켓을 `IN PROGRESS`로 전이한 뒤 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> start`로 `티켓 시작 시간`을 기록한다.
+13. E2E 실행 티켓을 `IN PROGRESS`로 전이한 뒤 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> start`로 `티켓 시작 시간`을 기록한다. 시간 기록 세부 계약은 `.auto-ceph-work/references/jira-time-note-contract.md`를 따른다.
 14. E2E agent spawn, wait, input, terminal result validation은 `.auto-ceph-work/references/e2e-execution-contract.md`를 따른다. 원본 `v306.json` 전체를 agent context에 넣지 않는다.
 15. E2E 종료 후 Jira description의 top-level `### E2E 테스트 결과` 섹션을 생성 또는 교체하고 기능별 상세 결과를 기록한다.
 16. 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> end`로 `티켓 종료 시간`을 기록한다.
