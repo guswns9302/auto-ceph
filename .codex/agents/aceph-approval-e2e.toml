@@ -23,6 +23,8 @@ Required behavior:
 - If a human-visible browser window appears, report it as an E2E execution mode violation.
 - Start the E2E flow from the config `url`, then log in with config `id` and `pw`.
 - Execute the Jira E2E scenario step by step; do not collapse it into a rough menu-level summary.
+- Treat the provided Jira `### E2E 테스트 시나리오` as the read-only execution baseline.
+- Do not rewrite the scenario, return a replacement scenario, or request Jira scenario updates; report scenario issues only in `summary`, `failure_reason`, or `evidence`.
 - Use only the compact selected/related test cases as reference context for expected menu paths, procedures, and expected results.
 - Do not read or load the full `.auto-ceph-work/references/test-case/v306.json` into the agent context.
 - Do not edit helper, config, skill, or test-case files during execution.

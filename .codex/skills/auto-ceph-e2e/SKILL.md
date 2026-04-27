@@ -46,13 +46,14 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 13. E2E 실행 티켓 생성 직후 active sprint 배정과 `TO DO` 전이는 `.auto-ceph-work/references/jira-create-template.md`를 따른다.
 14. E2E 실행 티켓을 `IN PROGRESS`로 전이한 뒤 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> start`로 `티켓 시작 시간`을 기록한다. 시간 기록 세부 계약은 `.auto-ceph-work/references/jira-time-note-contract.md`를 따른다.
 15. E2E agent spawn, wait, input, terminal result validation은 `.auto-ceph-work/references/e2e-execution-contract.md`를 따른다. 원본 `v306.json` 전체를 agent context에 넣지 않는다.
-16. E2E 종료 후 Jira description의 top-level `### E2E 테스트 결과` 섹션을 생성 또는 교체하고 기능별 상세 결과를 기록한다.
-17. 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> end`로 `티켓 종료 시간`을 기록한다.
-18. 결과 기록과 종료 시간 기록이 끝나면 E2E 실행 티켓을 `DONE`으로 전이한다.
-19. E2E 실패 기능/케이스마다 `[ACW] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>` 제목의 후속 Jira `Task`를 사용자 입력 없이 생성한다.
-20. 후속 티켓 생성 규칙, repo 판정, `remote: origin`, active sprint 배정, `TO DO` 전이는 `.auto-ceph-work/references/jira-create-template.md`를 따른다.
-21. 모든 결과 기록, DONE 전이, 실패 후속 티켓 생성이 끝난 뒤 `기능`, `E2E 결과`, `실패 원인`, `후속 티켓` 컬럼의 Markdown 표를 출력한다.
-22. `$auto-ceph-e2e` 실행 중에는 helper, config, skill, test-case 파일을 즉석 수정하지 않는다.
+16. E2E 실행 티켓 생성 시 작성한 `### E2E 테스트 시나리오`는 read-only 실행 기준선이며, 결과 기록, 종료 시간 기록, `DONE` 전이, 후속 티켓 생성 과정에서 변경하지 않는다.
+17. E2E 종료 후 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_work_note_section.js <description-file> "E2E 테스트 결과" section <result-block>` 방식으로 top-level `### E2E 테스트 결과` 섹션만 생성 또는 교체한다.
+18. 최신 description을 읽고 `.auto-ceph-work/scripts/update_jira_ticket_time_note.js <description-file> end`로 `티켓 종료 시간`을 기록한다.
+19. 결과 기록과 종료 시간 기록이 끝나면 E2E 실행 티켓을 `DONE`으로 전이한다.
+20. E2E 실패 기능/케이스마다 `[ACW] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>` 제목의 후속 Jira `Task`를 사용자 입력 없이 생성한다.
+21. 후속 티켓 생성 규칙, repo 판정, `remote: origin`, active sprint 배정, `TO DO` 전이는 `.auto-ceph-work/references/jira-create-template.md`를 따른다.
+22. 모든 결과 기록, DONE 전이, 실패 후속 티켓 생성이 끝난 뒤 `기능`, `E2E 결과`, `실패 원인`, `후속 티켓` 컬럼의 Markdown 표를 출력한다.
+23. `$auto-ceph-e2e` 실행 중에는 helper, config, skill, test-case 파일을 즉석 수정하지 않는다.
 
 ## User-Facing Contract
 
@@ -60,6 +61,7 @@ description: Auto-Ceph 메뉴 단위 E2E 테스트를 실행하는 사용자용 
 - 실행 시작 시 helper `menu-list` 결과로 `menu1` 목록을 보여주고 E2E 테스트 메뉴를 한 번 선택받는다.
 - helper `select` 결과인 compact selected cases만 사용해 선택 메뉴의 E2E 시나리오를 작성한다.
 - E2E 실행 티켓은 `[ACW E2E] <menu1> E2E 테스트` 제목으로 생성되고 active sprint에 즉시 배정된다.
+- 최초 작성된 `### E2E 테스트 시나리오`는 실행 기준선으로 보존하고, 실행 후에는 `### E2E 테스트 결과`만 갱신한다.
 - E2E 실행 티켓은 `TO DO -> IN PROGRESS -> DONE` 흐름으로 처리되며 시작/종료 시간을 기록한다.
 - E2E agent wait와 result 처리는 공통 E2E execution contract를 따른다.
 - 실패 기능/케이스마다 후속 `[ACW]` Jira `Task`를 생성한다.

@@ -22,6 +22,8 @@
 
 - E2E flow는 항상 E2E config의 `url` 접속, `id/pw` 로그인으로 시작한다.
 - agent 입력에는 E2E 시나리오, `.auto-ceph-work/references/e2e-test-config.md`, Playwright wrapper 경로, helper가 반환한 compact selected/related cases를 포함한다.
+- Jira description의 `### E2E 테스트 시나리오`는 최초 작성 후 read-only 실행 기준선이다.
+- agent는 제공된 E2E 시나리오를 실행만 하며, 수정된 시나리오를 반환하거나 Jira 시나리오 변경을 요청하지 않는다.
 - 원본 `.auto-ceph-work/references/test-case/v306.json` 전체를 agent context에 넣지 않는다.
 - `$auto-ceph-approval`에서 관련 메뉴/기능을 판단할 수 없으면 compact cases 대신 `관련 케이스 없음`을 전달한다.
 
@@ -38,6 +40,8 @@
 
 - parent skill만 Jira description, Jira comment, `DONE` 전이, 후속 티켓 생성을 수행한다.
 - agent는 Jira를 직접 수정하지 않는다.
+- E2E terminal result 이후 parent skill은 Jira description의 `### E2E 테스트 결과`만 생성 또는 교체한다.
+- `### E2E 테스트 시나리오`는 결과 기록, 종료 시간 기록, `DONE` 전이, 후속 티켓 생성 과정에서 재작성하지 않는다.
 - E2E 성공/실패 결과 기록 후 `DONE` 전이를 수행한다. 단, Trombone 실패로 E2E를 시작하지 않은 approval ticket은 `DONE`으로 전이하지 않는다.
 - E2E 실패도 결과 기록과 실패 댓글 후 `DONE`으로 전이하며, 후속 `[ACW]` 티켓 생성을 트리거한다.
 

@@ -1556,6 +1556,178 @@ test("update_jira_work_note_section places E2E sections before work notes", () =
   );
 });
 
+test("update_jira_work_note_section updates E2E results without changing scenario", () => {
+  const rootDir = makeTempDir("aceph-jira-e2e-result-root-");
+  const descriptionPath = path.join(rootDir, "description.md");
+  const blockPath = path.join(rootDir, "result.md");
+  const scenarioBlock = [
+    "### E2E 테스트 시나리오",
+    "",
+    "#### 테스트 시나리오",
+    "1. 기존 URL로 접속한다.",
+    "2. 기존 상세 단계만 수행한다.",
+    "",
+    "#### 기대 결과",
+    "- 기존 기대 결과",
+    "",
+    "#### 확인 범위",
+    "- 기존 확인 범위",
+  ].join("\n");
+
+  write(
+    descriptionPath,
+    [
+      "# 제목",
+      "",
+      "### 개선 방향",
+      "",
+      "- 변경 방향",
+      "",
+      scenarioBlock,
+      "",
+      "### E2E 테스트 결과",
+      "- 시작 전",
+      "",
+      "### 작업 노트",
+      "",
+      "- 티켓 시작 시간:",
+      "- 티켓 종료 시간:",
+      "",
+    ].join("\n")
+  );
+  write(
+    blockPath,
+    [
+      "- 기능: 버킷 목록",
+      "- 결과: passed",
+      "- 증거: snapshot",
+      "",
+    ].join("\n")
+  );
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), "utf8")
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), descriptionPath, "E2E 테스트 결과", "section", blockPath],
+    { cwd: rootDir, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(scenarioBlock.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(result.stdout, /### E2E 테스트 결과[\s\S]*- 기능: 버킷 목록[\s\S]*- 결과: passed/);
+  assert.doesNotMatch(result.stdout, /시작 전/);
+});
+
+test("update_jira_work_note_section creates E2E results without changing scenario", () => {
+  const rootDir = makeTempDir("aceph-jira-e2e-result-create-root-");
+  const descriptionPath = path.join(rootDir, "description.md");
+  const blockPath = path.join(rootDir, "result.md");
+  const scenarioBlock = [
+    "### E2E 테스트 시나리오",
+    "",
+    "#### 테스트 시나리오",
+    "1. 기존 시나리오를 유지한다.",
+    "",
+    "#### 기대 결과",
+    "- 기존 기대 결과",
+    "",
+    "#### 확인 범위",
+    "- 기존 범위",
+  ].join("\n");
+
+  write(
+    descriptionPath,
+    [
+      "# 제목",
+      "",
+      "### 개선 방향",
+      "",
+      "- 변경 방향",
+      "",
+      scenarioBlock,
+      "",
+      "### 작업 노트",
+      "",
+      "#### 리뷰 요청",
+      "",
+      "- 기존 요약",
+      "",
+    ].join("\n")
+  );
+  write(blockPath, "- 결과: failed\n- 실패 원인: validation\n");
+  write(
+    path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"),
+    fs.readFileSync(path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), "utf8")
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [path.join(rootDir, ".auto-ceph-work", "scripts", "update_jira_work_note_section.js"), descriptionPath, "E2E 테스트 결과", "section", blockPath],
+    { cwd: rootDir, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(scenarioBlock.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(
+    result.stdout,
+    /### E2E 테스트 시나리오[\s\S]*### E2E 테스트 결과[\s\S]*- 결과: failed[\s\S]*### 작업 노트/
+  );
+});
+
+test("update_jira_ticket_time_note records end time without changing E2E sections", () => {
+  const rootDir = makeTempDir("aceph-jira-e2e-time-root-");
+  const descriptionPath = path.join(rootDir, "description.md");
+  const scenarioBlock = [
+    "### E2E 테스트 시나리오",
+    "",
+    "#### 테스트 시나리오",
+    "1. 시나리오 기준선을 유지한다.",
+    "",
+    "#### 기대 결과",
+    "- 기존 기대 결과",
+    "",
+    "#### 확인 범위",
+    "- 기존 범위",
+  ].join("\n");
+  const resultBlock = [
+    "### E2E 테스트 결과",
+    "",
+    "- 기능: 사용자 생성",
+    "- 결과: passed",
+  ].join("\n");
+
+  write(
+    descriptionPath,
+    [
+      "# 제목",
+      "",
+      scenarioBlock,
+      "",
+      resultBlock,
+      "",
+      "### 작업 노트",
+      "",
+      "- 티켓 시작 시간: 2026-04-27 09:00:00 KST",
+      "- 티켓 종료 시간:",
+      "",
+    ].join("\n")
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [path.join(__dirname, "..", ".auto-ceph-work", "scripts", "update_jira_ticket_time_note.js"), descriptionPath, "end", "2026-04-27 10:00:00 KST"],
+    { cwd: rootDir, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(scenarioBlock.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(result.stdout, new RegExp(resultBlock.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(result.stdout, /- 티켓 종료 시간: 2026-04-27 10:00:00 KST/);
+});
+
 test("resolve_loop_state script reports iteration metadata and retry limit", () => {
   const rootDir = makeTempDir("aceph-loop-root-");
   write(
@@ -2338,10 +2510,14 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eContract, /`--headed`, `show`, `pause-at`/);
   assert.match(e2eContract, /사람이 볼 수 있는 브라우저 창이 뜨면/);
   assert.match(e2eContract, /compact selected\/related cases/);
+  assert.match(e2eContract, /`### E2E 테스트 시나리오`는 최초 작성 후 read-only 실행 기준선/);
+  assert.match(e2eContract, /수정된 시나리오를 반환하거나 Jira 시나리오 변경을 요청하지 않는다/);
   assert.match(e2eContract, /원본 `\.auto-ceph-work\/references\/test-case\/v306\.json` 전체를 agent context에 넣지 않는다/);
   assert.match(e2eContract, /status=passed\|failed/);
   assert.match(e2eContract, /results\[\]/);
   assert.match(e2eContract, /orchestration\/system failure/);
+  assert.match(e2eContract, /`### E2E 테스트 결과`만 생성 또는 교체/);
+  assert.match(e2eContract, /`### E2E 테스트 시나리오`는 결과 기록, 종료 시간 기록, `DONE` 전이, 후속 티켓 생성 과정에서 재작성하지 않는다/);
   assert.match(e2eContract, /\$auto-ceph-approval[\s\S]*spawn -> terminal result wait -> result validation -> Jira 결과 처리 -> 다음 ticket spawn/);
   assert.match(e2eContract, /\$auto-ceph-e2e[\s\S]*menu-scoped E2E agent/);
 
@@ -2405,6 +2581,9 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(approvalSkill, /`티켓`, `E2E 결과`, `DONE 전이`, `실패 원인`, `후속 티켓`/);
   assert.match(approvalSkill, /feature_name`, `menu_path`, `procedure`, `expected_result`를 feature\/step 단위로 상세화/);
   assert.match(approvalSkill, /메뉴 단위 한 줄 요약은 금지/);
+  assert.match(approvalSkill, /read-only 실행 기준선으로 고정/);
+  assert.match(approvalSkill, /`### E2E 테스트 결과`만 갱신/);
+  assert.match(approvalSkill, /기존 `### E2E 테스트 시나리오`는 MR approve, Trombone, E2E 결과 기록, `DONE` 전이, 후속 티켓 생성 과정에서 재작성하지 않는다/);
 
   assert.match(e2eSkill, /select_e2e_cases\.js menu-list <target-case-json>/);
   assert.match(e2eSkill, /select_e2e_cases\.js select <target-case-json> <menu1>/);
@@ -2413,6 +2592,8 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eSkill, /feature_name`, `menu_path`, `procedure`, `expected_result`를 feature\/step 단위로 상세화/);
   assert.match(e2eSkill, /메뉴 단위 한 줄 요약은 금지/);
   assert.match(e2eSkill, /\[ACW E2E\] <menu1> E2E 테스트/);
+  assert.match(e2eSkill, /`### E2E 테스트 시나리오`는 read-only 실행 기준선/);
+  assert.match(e2eSkill, /`### E2E 테스트 결과` 섹션만 생성 또는 교체/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> start/);
   assert.match(e2eSkill, /update_jira_ticket_time_note\.js <description-file> end/);
   assert.match(e2eSkill, /jira-time-note-contract\.md`를 따른다/);
@@ -2434,6 +2615,8 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(ticketTemplate, /### E2E 테스트 정보/);
   assert.match(ticketTemplate, /### E2E 테스트 시나리오/);
   assert.match(ticketTemplate, /### E2E 테스트 결과/);
+  assert.match(ticketTemplate, /read-only 기준선/);
+  assert.match(ticketTemplate, /실행 기록 전용 섹션/);
   assert.match(ticketTemplate, /티켓 시작 시간/);
   assert.match(ticketTemplate, /티켓 종료 시간/);
 
@@ -2463,6 +2646,8 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eAgent, /compact selected\/related test cases/);
   assert.match(e2eAgent, /step by step/);
   assert.match(e2eAgent, /do not collapse it into a rough menu-level summary/);
+  assert.match(e2eAgent, /read-only execution baseline/);
+  assert.match(e2eAgent, /Do not rewrite the scenario, return a replacement scenario, or request Jira scenario updates/);
   assert.match(e2eAgent, /failed_step` must identify the detailed scenario step number or feature\/step name/);
   assert.match(e2eAgent, /Do not read or load the full `\.auto-ceph-work\/references\/test-case\/v306\.json`/);
   assert.match(e2eAgent, /The parent skill owns Jira description updates, comments, DONE transition, and follow-up ticket creation/);
