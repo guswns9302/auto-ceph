@@ -2274,6 +2274,7 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   const approvalSkill = readRepoFile(path.join(".codex", "skills", "auto-ceph-approval", "SKILL.md"));
   const e2eSkill = readRepoFile(path.join(".codex", "skills", "auto-ceph-e2e", "SKILL.md"));
   const e2eContract = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-execution-contract.md"));
+  const tromboneContract = readRepoFile(path.join(".auto-ceph-work", "references", "trombone-deployment-contract.md"));
   const jiraCreateTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "jira-create-template.md"));
   const ticketTemplate = readRepoFile(path.join(".auto-ceph-work", "references", "e2e-jira-ticket-template.md"));
   const e2eAgent = readRepoFile(path.join(".codex", "agents", "aceph-approval-e2e.toml"));
@@ -2282,6 +2283,8 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   const tromboneHelper = readRepoFile(path.join(".auto-ceph-work", "scripts", "run_trombone_pipeline.sh"));
 
   assert.match(approvalSkill, /\.auto-ceph-work\/references\/e2e-execution-contract\.md/);
+  assert.match(approvalSkill, /\.auto-ceph-work\/references\/trombone-deployment-contract\.md/);
+  assert.doesNotMatch(approvalSkill, /11\. `\.auto-ceph-work\/scripts\/run_trombone_pipeline\.sh`/);
   assert.match(e2eSkill, /\.auto-ceph-work\/references\/e2e-execution-contract\.md/);
   assert.match(approvalSkill, /\[ACW\] <원본 티켓> E2E 실패 후속 조치/);
   assert.match(e2eSkill, /\[ACW\] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>/);
@@ -2303,6 +2306,13 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(e2eContract, /\$auto-ceph-approval[\s\S]*spawn -> terminal result wait -> result validation -> Jira 결과 처리 -> 다음 ticket spawn/);
   assert.match(e2eContract, /\$auto-ceph-e2e[\s\S]*menu-scoped E2E agent/);
 
+  assert.match(tromboneContract, /run_trombone_pipeline\.sh <REPO> <CONFIG-FILE>/);
+  assert.match(tromboneContract, /status=completed/);
+  assert.match(tromboneContract, /pipeline=<pipeline_prefix><repo>/);
+  assert.match(tromboneContract, /Trombone 배포 실패 \(<pipeline>\)/);
+  assert.match(tromboneContract, /Helper\/runtime failure must not be labeled as a real Trombone deployment failure/);
+  assert.match(tromboneContract, /Trombone 파이프라인 실행 완료 \(<pipeline>\)/);
+
   assert.match(jiraCreateTemplate, /E2E Follow-Up Ticket Rules/);
   assert.match(jiraCreateTemplate, /\[ACW\] <원본 티켓> E2E 실패 후속 조치/);
   assert.match(jiraCreateTemplate, /\[ACW\] <E2E 티켓 ID> E2E 실패 후속 조치 - <기능명>/);
@@ -2317,7 +2327,7 @@ test("auto-ceph approval and e2e skills reference shared E2E and generated-ticke
   assert.match(approvalSkill, /`transition_failed_excluded`/);
   assert.match(approvalSkill, /07_SUMMARY\.md/);
   assert.match(approvalSkill, /MR approve \/ merge success/);
-  assert.match(approvalSkill, /Trombone 배포 실패/);
+  assert.match(approvalSkill, /trombone-deployment-contract\.md`를 따른다/);
   assert.match(approvalSkill, /`티켓`, `E2E 결과`, `DONE 전이`, `실패 원인`, `후속 티켓`/);
 
   assert.match(e2eSkill, /select_e2e_cases\.js menu-list <target-case-json>/);
