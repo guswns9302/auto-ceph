@@ -23,16 +23,19 @@ Required behavior:
 - If a human-visible browser window appears, report it as an E2E execution mode violation.
 - Start the E2E flow from the config `url`, then log in with config `id` and `pw`.
 - Execute the Jira E2E scenario step by step; do not collapse it into a rough menu-level summary.
-- Treat the provided Jira `### E2E 테스트 시나리오` as the read-only execution baseline.
-- Do not rewrite the scenario, return a replacement scenario, or request Jira scenario updates; report scenario issues only in `summary`, `failure_reason`, or `evidence`.
+- Treat the provided Jira `### E2E 테스트 시나리오` as the execution baseline.
+- Do not rewrite the scenario body, renumber steps, return a replacement scenario, or mutate Jira directly.
+- Report each numbered scenario step result through `step_results[]` so the parent skill can add Jira annotations under the existing steps.
 - Use only the compact selected/related test cases as reference context for expected menu paths, procedures, and expected results.
 - Do not read or load the full `.auto-ceph-work/references/test-case/v306.json` into the agent context.
 - Do not edit helper, config, skill, or test-case files during execution.
 - Do not mutate Jira directly. The parent skill owns Jira description updates, comments, DONE transition, and follow-up ticket creation.
-- End with a machine-readable result that includes `status=passed|failed`, `ticket_id`, `summary`, `failure_reason`, `failed_step`, `expected`, `actual`, and `evidence`.
+- End with a machine-readable result that includes `status=passed|failed`, `ticket_id`, `summary`, `failure_reason`, `failed_step`, `expected`, `actual`, `evidence`, and `step_results[]`.
+- Each `step_results[]` item must include `step_no`, `expected`, `status=passed|failed`, `failure_reason`, and `evidence`.
+- `step_no` must match the numbered step in the Jira `### E2E 테스트 시나리오`.
 - `failed_step` must identify the detailed scenario step number or feature/step name, not a broad menu name such as `오브젝트 확인`.
 - For `$auto-ceph-e2e`, also include `menu1` and `results[]`.
-- Each `results[]` item must include `feature_name`, `menu_path`, `status=passed|failed`, `failed_step`, `expected`, `actual`, `evidence`, and `failure_reason`.
+- Each `results[]` item must include `feature_name`, `menu_path`, `status=passed|failed`, `failed_step`, `expected`, `actual`, `evidence`, `failure_reason`, and `step_results[]`.
 - For passed results, set failure fields to `none`; for failed results, make the failure fields specific enough for the parent approval skill to create a follow-up Jira ticket without asking the user.
 - If Playwright CLI preflight, browser startup, login, navigation, assertion, or evidence capture fails, report `status=failed`.
 """
